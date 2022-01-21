@@ -91,8 +91,6 @@ void NES::dumpRomMemory(ofstream* writer) {
 			writer->write(out.str().c_str(), out.str().length());
 		}
 	}
-	//writer.close();
-	//exit(0);
 }
 
 void NES::dumpCPUMemory(ofstream* writer) {
@@ -102,8 +100,6 @@ void NES::dumpCPUMemory(ofstream* writer) {
 		out << "-" << i << " " << cpuMem->mem[i] << "\n";
 		writer->write(out.str().c_str(), out.str().length());
 	}
-	//writer.close();
-	//exit(0);
 }
 
 bool NES::stateLoad(ByteBuffer* buf) {
@@ -115,8 +111,7 @@ bool NES::stateLoad(ByteBuffer* buf) {
 	stopEmulation();
 
 	// Check version:
-	if(buf->readByte() == 1) {
-
+	if (buf->readByte() == 1) {
 		// Let units load their state from the buffer:
 		cpuMem->stateLoad(buf);
 		ppuMem->stateLoad(buf);
@@ -125,12 +120,9 @@ bool NES::stateLoad(ByteBuffer* buf) {
 		memMapper->stateLoad(buf);
 		ppu->stateLoad(buf);
 		success = true;
-
 	} else {
-
 		//System.out.println("State file has wrong format. version="+buf->readByte(0));
 		success = false;
-
 	}
 
 	// Continue emulation:
@@ -157,10 +149,9 @@ void NES::stateSave(ByteBuffer* buf) {
 	ppu->stateSave(buf);
 
 	// Continue emulation:
-	if(continueEmulation) {
+	if (continueEmulation) {
 		startEmulation();
 	}
-
 }
 
 bool NES::isRunning() {
@@ -168,16 +159,15 @@ bool NES::isRunning() {
 }
 
 void NES::startEmulation() {
-	if(Globals::enableSound && !papu->isRunning()) {
+	if (Globals::enableSound && !papu->isRunning()) {
 		papu->lock_mutex();
 		papu->synchronized_start();
 		papu->unlock_mutex();
 	}
-	{
-		if(rom != nullptr && rom->isValid()) {
-			_isRunning = true;
-		}
-	}
+
+  if (rom != nullptr && rom->isValid()) {
+    _isRunning = true;
+  }
 }
 
 void NES::stopEmulation() {
@@ -190,16 +180,17 @@ void NES::stopEmulation() {
 }
 
 void NES::clearCPUMemory() {
-	uint16_t flushval = Globals::memoryFlushValue;
-	for(int i = 0; i < 0x2000; ++i) {
-		cpuMem->mem[i] = flushval;
+	const uint16_t flushval = Globals::memoryFlushValue;
+	for (int i = 0; i < 0x2000; ++i) {
+		cpuMem->write(i, flushval);
 	}
-	for(int p = 0; p < 4; ++p) {
-		int i = p * 0x800;
-		cpuMem->mem[i + 0x008] = 0xF7;
-		cpuMem->mem[i + 0x009] = 0xEF;
-		cpuMem->mem[i + 0x00A] = 0xDF;
-		cpuMem->mem[i + 0x00F] = 0xBF;
+
+	for (int p = 0; p < 4; ++p) {
+		const int i = p * 0x800;
+		cpuMem->write(i + 0x008, 0xF7);
+		cpuMem->write(i + 0x009, 0xEF);
+		cpuMem->write(i + 0x00A, 0xDF);
+		cpuMem->write(i + 0x00F, 0xBF);
 	}
 }
 
@@ -255,27 +246,23 @@ bool NES::load_rom_from_data(string rom_name, vector<uint8_t>* data, array<uint1
 		stopEmulation();
 	}
 
-	{
-		// Load ROM file:
+  // Load ROM file:
+  rom = make_shared<ROM>()->Init(shared_from_this());
+  rom->load_from_data(rom_name, data, save_ram);
 
-		rom = make_shared<ROM>()->Init(shared_from_this());
-		rom->load_from_data(rom_name, data, save_ram);
+  if (rom->isValid()) {
+    // The CPU will load
+    // the ROM into the CPU
+    // and PPU memory.
 
-		if(rom->isValid()) {
+    reset();
+    memMapper = rom->createMapper();
+    cpu->setMapper(memMapper);
+    memMapper->loadROM(rom);
+    ppu->setMirroring(rom->getMirroringType());
+  }
 
-			// The CPU will load
-			// the ROM into the CPU
-			// and PPU memory.
-
-			reset();
-
-			memMapper = rom->createMapper();
-			cpu->setMapper(memMapper);
-			memMapper->loadROM(rom);
-			ppu->setMirroring(rom->getMirroringType());
-		}
-		return rom->isValid();
-	}
+  return rom->isValid();
 }
 
 // Resets the system.

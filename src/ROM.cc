@@ -337,24 +337,20 @@ string ROM::getmapperName() {
 
 void ROM::load_from_data(const std::string& file_name, vector<uint8_t>* data, array<uint16_t, 0x2000>* save_ram) {
 	fileName = file_name;
-
 	log_to_browser("log: rom::load_from_data");
-  std::vector<uint16_t> sdata;
-  std::copy(data->begin(), data->end(), std::back_inserter(sdata));
 
 	// Get sha256 of the rom
 	_sha256 = sha256sum(data->data(), data->size());
 	log_to_browser("log: rom::sha256sum");
 
 	// Read header:
-  std::copy_n(sdata.begin(), header.size(), header.begin());
+  std::copy_n(data->begin(), header.size(), header.begin());
 
 	// Check first four bytes:
-	if (sdata[0] != 'N' ||
-	    sdata[1] != 'E' ||
-	    sdata[2] != 'S' ||
-	    sdata[3] != 0x1A) {
-		//System.out.println("Header is incorrect.");
+	if (data->at(0) != 'N' ||
+	    data->at(1) != 'E' ||
+	    data->at(2) != 'S' ||
+	    data->at(3) != 0x1A) {
 		valid = false;
 		return;
 	}
@@ -409,29 +405,27 @@ void ROM::load_from_data(const std::string& file_name, vector<uint8_t>* data, ar
 		}
 	}
 
-	//try{
-
 	// Load PRG-ROM banks:
 	size_t offset = 16;
+  auto curr = data->begin();
+  std::advance(curr, offset);
 	for(size_t i = 0; i < romCount; ++i) {
-		for(size_t j = 0; j < 16384; ++j) {
-			if(offset + j >= data->size()) {
-				break;
-			}
-			rom[i][j] = sdata[offset + j];
-		}
-		offset += 16384;
+    if (offset >= data->size())
+      break;
+    const size_t cnt = std::min(data->size(), offset + KB(16)) - offset;
+    std::copy_n(curr, cnt, rom[i].begin());
+    std::advance(curr, cnt);
+		offset += KB(16);
 	}
 
 	// Load CHR-ROM banks:
 	for(size_t i = 0; i < vromCount; ++i) {
-		for(size_t j = 0; j < 4096; ++j) {
-			if(offset + j >= data->size()) {
-				break;
-			}
-			vrom[i][j] = sdata[offset + j];
-		}
-		offset += 4096;
+    if (offset >= data->size())
+      break;
+    const size_t cnt = std::min(data->size(), offset + KB(4)) - offset;
+    std::copy_n(curr, cnt, vrom[i].begin());
+    std::advance(curr, cnt);
+		offset += KB(4);
 	}
 
 	// Create VROM tiles:
@@ -444,35 +438,17 @@ void ROM::load_from_data(const std::string& file_name, vector<uint8_t>* data, ar
 	// Convert CHR-ROM banks to tiles:
 	//System.out.println("Converting CHR-ROM image data..");
 	//System.out.println("VROM bank count: "+vromCount);
-	int tileIndex = 0;
-	int leftOver = 0;
-	for(size_t v = 0; v < vromCount; ++v) {
-		for(size_t i = 0; i < 4096; ++i) {
-			tileIndex = i >> 4;
-			leftOver = i % 16;
-			if(leftOver < 8) {
+	for (size_t v = 0; v < vromCount; ++v) {
+		for (size_t i = 0; i < KB(4); ++i) {
+			int tileIndex = (i >> 4);
+			int leftOver  = (i & 0x0f);
+			if (leftOver < 8) {
 				vromTile[v][tileIndex].setScanline(leftOver, vrom[v][i], vrom[v][i + 8]);
 			} else {
 				vromTile[v][tileIndex].setScanline(leftOver - 8, vrom[v][i - 8], vrom[v][i]);
 			}
 		}
 	}
-
-	/*
-	tileIndex = (address+i)>>4;
-	leftOver = (address+i) % 16;
-	if(leftOver<8) {
-	ptTile[tileIndex].setScanline(leftOver,value[offset+i],ppuMem.load(address+8+i));
-	}else{
-	ptTile[tileIndex].setScanline(leftOver-8,ppuMem.load(address-8+i),value[offset+i]);
-	}
-	*/
-
-	/*}catch(Exception e) {
-	//System.out.println("Error reading ROM & VROM banks. Corrupt file?");
-	valid = false;
-	return;
-	}*/
 
 	valid = true;
 }
@@ -553,8 +529,7 @@ bool ROM::mapperSupported() {
 }
 
 shared_ptr<MapperDefault> ROM::createMapper() {
-
-	if(!mapperSupported()) {
+	if (!mapperSupported()) {
 		fprintf(stderr, "Unsupported mapper: %zu for the rom: %s. Exiting ...\n", mapperType, fileName.c_str());
 		exit(1);
 	}
@@ -601,7 +576,6 @@ shared_ptr<MapperDefault> ROM::createMapper() {
 		}
 
 	return nullptr;
-
 }
 
 void ROM::setSaveState(bool enableSave) {

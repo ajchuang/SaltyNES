@@ -551,7 +551,6 @@ void MapperDefault::loadROM(shared_ptr<ROM> rom) {
 	// Reset IRQ:
 	//nes->getCpu().doResetInterrupt();
 	nes->getCpu()->requestIrq(CPU::IRQ_RESET);
-
 }
 
 void MapperDefault::loadPRGROM() {

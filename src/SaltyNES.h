@@ -35,6 +35,9 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 	#include <emscripten/bind.h>
 #endif
 
+#define KB(X) (1024*(X))
+#define MB(X) (1024*KB(1)*(X))
+
 using namespace std;
 
 // Forward declarations

@@ -289,18 +289,13 @@ void PPU::setMirroring(int mirroring) {
 		defineMirrorRegion(0x2c00, 0x2400, 0x400);
 
 	} else {
-
 		// Assume Four-screen mirroring.
-
 		ntable1[0] = 0;
 		ntable1[1] = 1;
 		ntable1[2] = 2;
 		ntable1[3] = 3;
-
 	}
-
 }
-
 
 // Define a mirrored area in the address lookup table.
 // Assumes the regions don't overlap.
@@ -314,22 +309,18 @@ void PPU::defineMirrorRegion(size_t fromStart, size_t toStart, size_t size) {
 // Emulates PPU cycles
 bool PPU::emulateCycles() {
 	bool did_render = false;
-
 	//int n = (!requestEndFrame && curX+cycles<341 && (scanline-20 < spr0HitY || scanline-22 > spr0HitY))?cycles:1;
-	for(; cycles > 0; --cycles) {
-
-		if(scanline - 21 == spr0HitY) {
-
-			if((curX == spr0HitX) && (f_spVisibility == 1)) {
+	for (; cycles > 0; --cycles) {
+		if (scanline - 21 == spr0HitY) {
+			if ((curX == spr0HitX) && (f_spVisibility == 1)) {
 				// Set sprite 0 hit flag:
 				setStatusFlag(STATUS_SPRITE0HIT, true);
 			}
-
 		}
 
-		if(requestEndFrame) {
+		if (requestEndFrame) {
 			--nmiCounter;
-			if(nmiCounter == 0) {
+			if (nmiCounter == 0) {
 				requestEndFrame = false;
 				startVBlank();
 				did_render = true;
@@ -337,8 +328,7 @@ bool PPU::emulateCycles() {
 		}
 
 		++curX;
-		if(curX == 341) {
-
+		if (curX == 341) {
 			curX = 0;
 			endScanline();
 		}
@@ -348,12 +338,11 @@ bool PPU::emulateCycles() {
 
 void PPU::startVBlank() {
 	// Start VBlank period:
-
 	// Do NMI:
 	nes->getCpu()->requestIrq(CPU::IRQ_NMI);
 
 	// Make sure everything is rendered:
-	if(lastRenderedScanline < 239) {
+	if (lastRenderedScanline < 239) {
 		renderFramePartially(lastRenderedScanline + 1, 240 - lastRenderedScanline);
 	}
 
@@ -362,7 +351,7 @@ void PPU::startVBlank() {
 	nes->papu->writeBuffer();
 
 	// Actually draw the screen
-	const SDL_Rect rect = { UNDER_SCAN, UNDER_SCAN, 256-(UNDER_SCAN*2), 240-(UNDER_SCAN*2) };
+	const SDL_Rect rect = { UNDER_SCAN, UNDER_SCAN, 256 - (UNDER_SCAN * 2), 240 - (UNDER_SCAN * 2) };
 	SDL_UpdateTexture(Globals::g_screen, &rect, &_screen_buffer[0], 256 * sizeof(uint32_t));
 
 	SDL_RenderClear(Globals::g_renderer);
@@ -408,14 +397,6 @@ void PPU::startVBlank() {
 					printf("Joystick removed: %d\n", id);
 				}
 				break;
-/*
-			case SDL_JOYBUTTONDOWN:
-				printf("!!! JOY down: %d\n", event.cbutton.button);
-				break;
-			case SDL_JOYBUTTONUP:
-				printf("!!! JOY up: %d\n", event.cbutton.button);
-				break;
-*/
 		}
 	}
 
@@ -558,19 +539,15 @@ void PPU::startFrame() {
 	// Set background color:
 	int bgColor = 0;
 
-	if(f_dispType == 0) {
-
+	if (f_dispType == 0) {
 		// Color display.
 		// f_color determines color emphasis.
 		// Use first entry of image palette as BG color.
 		bgColor = imgPalette[0];
-
 	} else {
-
 		// Monochrome display.
 		// f_color determines the bg color.
 		switch (f_color) {
-
 			case 0: {
 				// Black
 				bgColor = 0x00000;
@@ -597,7 +574,6 @@ void PPU::startFrame() {
 				bgColor = 0x0;
 			}
 		}
-
 	}
 
 	std::fill(_screen_buffer.begin(), _screen_buffer.end(), bgColor);
@@ -990,24 +966,22 @@ void PPU::triggerRendering() {
 }
 
 void PPU::renderFramePartially(int startScan, int scanCount) {
-	if(f_spVisibility == 1 && !Globals::disableSprites) {
+	if (f_spVisibility == 1 && !Globals::disableSprites) {
 		renderSpritesPartially(startScan, scanCount, true);
 	}
 
-	if(f_bgVisibility == 1) {
+	if (f_bgVisibility == 1) {
 		si = startScan << 8;
-		ei = (startScan + scanCount) << 8;
-		if(ei > 0xF000) {
-			ei = 0xF000;
-		}
-		for(destIndex = si; destIndex < ei; ++destIndex) {
-			if(pixrendered[destIndex] > 0xFF) {
+		ei = std::max(((startScan + scanCount) << 8), 0xf000);
+
+		for (destIndex = si; destIndex < ei; ++destIndex) {
+			if (pixrendered[destIndex] > 0xFF) {
 				_screen_buffer[destIndex] = bgbuffer[destIndex];
 			}
 		}
 	}
 
-	if(f_spVisibility == 1 && !Globals::disableSprites) {
+	if (f_spVisibility == 1 && !Globals::disableSprites) {
 		renderSpritesPartially(startScan, scanCount, false);
 	}
 
@@ -1115,10 +1089,11 @@ void PPU::renderBgScanline(array<int, 256 * 240>* buffer, int scan) {
 }
 
 void PPU::renderSpritesPartially(int startscan, int scancount, bool bgPri) {
-	if(f_spVisibility == 1) {
-
-		for(size_t i = 0; i < 64; ++i) {
-			if(bgPriority[i] == bgPri && sprX[i] >= 0 && sprX[i] < 256 && sprY[i] + 8 >= startscan && sprY[i] < startscan + scancount) {
+	if (f_spVisibility == 1) {
+		for (size_t i = 0; i < 64; ++i) {
+			if (bgPriority[i] == bgPri &&
+          sprX[i] >= 0 && sprX[i] < 256 &&
+          sprY[i] + 8 >= startscan && sprY[i] < startscan + scancount) {
 				// Show sprite.
 				if(f_spriteSize == 0) {
 					// 8x8 sprites
