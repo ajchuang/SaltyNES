@@ -335,28 +335,25 @@ string ROM::getmapperName() {
 	return ss.str();
 }
 
-void ROM::load_from_data(string file_name, vector<uint8_t>* data, array<uint16_t, 0x2000>* save_ram) {
+void ROM::load_from_data(const std::string& file_name, vector<uint8_t>* data, array<uint16_t, 0x2000>* save_ram) {
 	fileName = file_name;
-	auto sdata = vector<uint16_t>(data->size());
-	for(size_t i=0; i<sdata.size(); ++i) {
-		sdata[i] = static_cast<uint16_t>(data->data()[i] & 255);
-	}
+
 	log_to_browser("log: rom::load_from_data");
+  std::vector<uint16_t> sdata;
+  std::copy(data->begin(), data->end(), std::back_inserter(sdata));
 
 	// Get sha256 of the rom
 	_sha256 = sha256sum(data->data(), data->size());
 	log_to_browser("log: rom::sha256sum");
 
 	// Read header:
-	for(int i = 0; i < header.size(); ++i) {
-		header[i] = sdata[i];
-	}
+  std::copy_n(sdata.begin(), header.size(), header.begin());
 
 	// Check first four bytes:
-	if(sdata[0] != 'N' ||
-	sdata[1] != 'E' ||
-	sdata[2] != 'S' ||
-	sdata[3] != 0x1A) {
+	if (sdata[0] != 'N' ||
+	    sdata[1] != 'E' ||
+	    sdata[2] != 'S' ||
+	    sdata[3] != 0x1A) {
 		//System.out.println("Header is incorrect.");
 		valid = false;
 		return;
@@ -381,7 +378,7 @@ void ROM::load_from_data(string file_name, vector<uint8_t>* data, array<uint16_t
 
 	// Battery RAM?
 	saveRam = save_ram;
-	if(batteryRam) {
+	if (batteryRam) {
 		loadBatteryRam();
 	}
 
@@ -393,20 +390,17 @@ void ROM::load_from_data(string file_name, vector<uint8_t>* data, array<uint16_t
 			break;
 		}
 	}
-	if(foundError) {
+
+	if (foundError) {
 		// Ignore byte 7.
 		mapperType &= 0xF;
 	}
 
 	rom = vector<array<uint16_t, 16384>>(romCount);
-	for(size_t i=0; i<romCount; ++i) {
-		rom[i].fill(0);
-	}
+	for (auto r : rom) { r.fill(0); }
 
 	vrom = vector<array<uint16_t, 4096>>(vromCount);
-	for(size_t i=0; i<vromCount; ++i) {
-		vrom[i].fill(0);
-	}
+  for (auto v : vrom) { v.fill(0); }
 
 	vromTile = vector<array<Tile, 256>>(vromCount);
 	for(size_t i=0; i<vromTile.size(); ++i) {

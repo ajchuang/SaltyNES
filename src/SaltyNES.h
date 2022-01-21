@@ -20,6 +20,7 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 #include <algorithm>
 #include <memory>
 #include <array>
+#include <iterator>
 #include <sys/time.h>
 
 #include "Color.h"
@@ -1100,6 +1101,20 @@ public:
 
 class Tile {
 public:
+	Tile();
+	void setBuffer(vector<uint16_t>* scanline);
+	void setScanline(int sline, uint16_t b1, uint16_t b2);
+	void renderSimple(int dx, int dy, vector<int>* fBuffer, int palAdd, int* palette);
+	void renderSmall(int dx, int dy, vector<int>* buffer, int palAdd, int* palette);
+	void render(int srcx1, int srcy1, int srcx2, int srcy2, int dx, int dy, array<int, 256 * 240>* fBuffer, int palAdd, array<int, 16>* palette, bool flipHorizontal, bool flipVertical, int pri, array<int, 256 * 240>* priTable);
+	bool isTransparent(int x, int y);
+	void dumpData(string file);
+	void stateSave(ByteBuffer* buf);
+	void stateLoad(ByteBuffer* buf);
+  int getPix(const uint32_t index) { return pix[index]; }
+  bool getOpaque(const uint32_t index) { return opaque[index]; }
+
+private:
 	// Tile data:
 	array<int, 64> pix;
 	int fbIndex;
@@ -1112,17 +1127,6 @@ public:
 	int c;
 	bool initialized;
 	array<bool, 8> opaque;
-
-	Tile();
-	void setBuffer(vector<uint16_t>* scanline);
-	void setScanline(int sline, uint16_t b1, uint16_t b2);
-	void renderSimple(int dx, int dy, vector<int>* fBuffer, int palAdd, int* palette);
-	void renderSmall(int dx, int dy, vector<int>* buffer, int palAdd, int* palette);
-	void render(int srcx1, int srcy1, int srcx2, int srcy2, int dx, int dy, array<int, 256 * 240>* fBuffer, int palAdd, array<int, 16>* palette, bool flipHorizontal, bool flipVertical, int pri, array<int, 256 * 240>* priTable);
-	bool isTransparent(int x, int y);
-	void dumpData(string file);
-	void stateSave(ByteBuffer* buf);
-	void stateLoad(ByteBuffer* buf);
 };
 
 class PPU : public enable_shared_from_this<PPU> {
@@ -1369,7 +1373,7 @@ public:
 	~ROM();
 	string sha256sum(uint8_t* data, size_t length);
 	string getmapperName();
-	void load_from_data(string file_name, vector<uint8_t>* data, array<uint16_t, 0x2000>* save_ram);
+	void load_from_data(const std::string& file_name, vector<uint8_t>* data, array<uint16_t, 0x2000>* save_ram);
 	bool isValid();
 	int getRomBankCount();
 	int getVromBankCount();

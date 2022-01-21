@@ -146,7 +146,7 @@ shared_ptr<PPU> PPU::Init(shared_ptr<NES> nes) {
 	bgbuffer.fill(0);
 	pixrendered.fill(0);
 	//dummyPixPriTable = vector<int>(256 * 240, 0);
-	tpix = nullptr;
+	//tpix = nullptr;
 	requestRenderAll = false;
 	validTileData = false;
 	att = 0;
@@ -1035,12 +1035,12 @@ void PPU::renderBgScanline(array<int, 256 * 240>* buffer, int scan) {
 				if(validTileData) {
 					// Get data from array:
 					t = scantile[tile];
-					tpix = &t->pix;
+					//tpix = &t->pix;
 					att = attrib[tile];
 				} else {
 					// Fetch data:
 					t = &(ptTile[baseTile + nameTable[curNt].getTileIndex(cntHT, cntVT)]);
-					tpix = &t->pix;
+					//tpix = &t->pix;
 					att = nameTable[curNt].getAttrib(cntHT, cntVT);
 					scantile[tile] = t;
 					attrib[tile] = att;
@@ -1054,15 +1054,17 @@ void PPU::renderBgScanline(array<int, 256 * 240>* buffer, int scan) {
 						destIndex -= x;
 						sx = -x;
 					}
-					if(t->opaque[cntFV]) {
+					if (t->getOpaque(cntFV)) {
 						for(; sx < 8; ++sx) {
-							(*buffer)[destIndex] = imgPalette[(*tpix)[tscanoffset + sx] + att];
+							//(*buffer)[destIndex] = imgPalette[(*tpix)[tscanoffset + sx] + att];
+							(*buffer)[destIndex] = imgPalette[t->getPix(tscanoffset + sx) + att];
 							pixrendered[destIndex] |= 256;
 							++destIndex;
 						}
 					} else {
 						for(; sx < 8; ++sx) {
-							col = (*tpix)[tscanoffset + sx];
+							col = t->getPix(tscanoffset + sx);
+							//col = (*tpix)[tscanoffset + sx];
 							if(col != 0) {
 								(*buffer)[destIndex] = imgPalette[col + att];
 								pixrendered[destIndex] |= 256;
@@ -1217,7 +1219,7 @@ bool PPU::checkSprite0(int scan) {
 				for(int i = 7; i >= 0; --i) {
 					if(x >= 0 && x < 256) {
 						if(bufferIndex >= 0 && bufferIndex < 61440 && pixrendered[bufferIndex] != 0) {
-							if(t->pix[toffset + i] != 0) {
+							if(t->getPix(toffset + i) != 0) {
 								spr0HitX = bufferIndex % 256;
 								spr0HitY = scan;
 								return true;
@@ -1233,7 +1235,7 @@ bool PPU::checkSprite0(int scan) {
 				for(size_t i = 0; i < 8; ++i) {
 					if(x >= 0 && x < 256) {
 						if(bufferIndex >= 0 && bufferIndex < 61440 && pixrendered[bufferIndex] != 0) {
-							if(t->pix[toffset + i] != 0) {
+							if(t->getPix(toffset + i) != 0) {
 								spr0HitX = bufferIndex % 256;
 								spr0HitY = scan;
 								return true;
@@ -1287,7 +1289,7 @@ bool PPU::checkSprite0(int scan) {
 				for(int i = 7; i >= 0; --i) {
 					if(x >= 0 && x < 256) {
 						if(bufferIndex >= 0 && bufferIndex < 61440 && pixrendered[bufferIndex] != 0) {
-							if(t->pix[toffset + i] != 0) {
+							if(t->getPix(toffset + i)) {
 								spr0HitX = bufferIndex % 256;
 								spr0HitY = scan;
 								return true;
@@ -1303,7 +1305,7 @@ bool PPU::checkSprite0(int scan) {
 				for(size_t i = 0; i < 8; ++i) {
 					if(x >= 0 && x < 256) {
 						if(bufferIndex >= 0 && bufferIndex < 61440 && pixrendered[bufferIndex] != 0) {
-							if(t->pix[toffset + i] != 0) {
+							if (t->getPix(toffset + i)) {
 								spr0HitX = bufferIndex % 256;
 								spr0HitY = scan;
 								return true;
