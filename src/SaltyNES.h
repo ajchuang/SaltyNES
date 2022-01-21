@@ -369,6 +369,10 @@ public:
 };
 
 class CPU : public enable_shared_from_this<CPU> {
+private:
+  void handle_irq();
+  int calculate_addr(const int addr_mode);
+  bool exec_inst();
 public:
 	// IRQ Types:
 	static const int IRQ_NORMAL = 0;

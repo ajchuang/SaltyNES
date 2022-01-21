@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
 	// Create a SDL window
 	Globals::g_window = SDL_CreateWindow(
 		"SaltyNES",
-		0, 0, 256, 240,
+		0, 0, 256 * 2, 240 * 2,
 		0
 	);
 	if (! Globals::g_window) {
