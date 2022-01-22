@@ -163,3 +163,10 @@ void SaltyNES::initKeyCodes() {
 	Globals::keycodes["VK_PERIOD"] = 46;
 	Globals::keycodes["VK_SLASH"] = 47;
 }
+
+std::string get_current_time_string() {
+  auto x = std::chrono::system_clock::now();
+  auto y = std::chrono::system_clock::to_time_t(x);
+  const char* const z = std::ctime(&y);
+  return std::string(z, strlen(z) - 1);
+}

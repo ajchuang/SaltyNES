@@ -9,6 +9,7 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 #ifndef _SALTY_NES_H_
 #define _SALTY_NES_H_
 
+#include <chrono>
 #include <map>
 #include <vector>
 #include <sstream>
@@ -1498,5 +1499,13 @@ inline void log_to_browser(const std::string& message) {
 	fprintf(stdout, "%s\n", message.c_str());
 	fflush(stdout);
 }
+
+std::string get_current_time_string();
+#define mlog(...) \
+    { \
+      printf("[%s: %s] ", __func__, get_current_time_string().c_str()); \
+      printf(__VA_ARGS__); \
+      printf("\n"); \
+    }
 
 #endif // _SALTY_NES_H_

@@ -189,6 +189,7 @@ int main(int argc, char* argv[]) {
   on_emultor_start();
 #endif
 
+  mlog("emulation started");
   start_main_loop();
   return 0;
 }

@@ -725,7 +725,7 @@ void PAPU::sample() {
       sampleBuffer[bufferIndex++] = static_cast<uint8_t>((sampleValueR) & 0xFF);
       sampleBuffer[bufferIndex++] = static_cast<uint8_t>((sampleValueR >> 8) & 0xFF);
     } else {
-      fprintf(stderr, "[%s] audio drop data(4, %lu, %lu)\n", __func__, (size_t)bufferIndex, sampleBuffer.size());
+      mlog("audio drop data(4, %lu, %lu)", (size_t)bufferIndex, sampleBuffer.size());
     }
   } else {
     // Write:
@@ -733,7 +733,7 @@ void PAPU::sample() {
       sampleBuffer[bufferIndex++] = static_cast<uint8_t>((sampleValueL) & 0xFF);
       sampleBuffer[bufferIndex++] = static_cast<uint8_t>((sampleValueL >> 8) & 0xFF);
     } else {
-      fprintf(stderr, "[%s] audio drop data(2, %lu)\n", __func__, sampleBuffer.size());
+      mlog("audio drop data(2, %lu)", sampleBuffer.size());
     }
   }
   // Reset sampled values:

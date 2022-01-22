@@ -11,7 +11,6 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 
 using namespace std;
 
-
 string Logger::_file_name;
 ofstream* Logger::_log = nullptr;
 size_t Logger::_length = 0;
