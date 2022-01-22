@@ -335,7 +335,7 @@ static void render_fps() {
   auto text = TTF_RenderText_Solid(font, ss.str().data(), color);
   auto texture = SDL_CreateTextureFromSurface(Globals::g_renderer, text);
   SDL_Rect dest = { 4, 4, text->w, text->h };
-  SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_NONE);
+  SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
   SDL_RenderCopy(Globals::g_renderer, texture, nullptr, &dest);
   SDL_DestroyTexture(texture);
   SDL_FreeSurface(text);

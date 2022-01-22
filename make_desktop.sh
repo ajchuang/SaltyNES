@@ -19,4 +19,4 @@ fi
 
 cd $BUILD_DIR
 cmake .. -DMY_TYPE=$BUILD_TYPE
-make -j 4
+make -j8

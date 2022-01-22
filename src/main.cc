@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
       SDL_CreateWindow(
         "SaltyNES",
         0, 0, Globals::window_width, Globals::window_height,
-        0);
+        SDL_WINDOW_RESIZABLE);
   if (Globals::g_window == nullptr) {
     fprintf(stderr, "Couldn't create a window: %s\n", SDL_GetError());
     return -1;
@@ -171,6 +171,7 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Couldn't create a renderer: %s\n", SDL_GetError());
     return -1;
   }
+  SDL_RenderSetLogicalSize(Globals::g_renderer, RES_WIDTH, RES_HEIGHT);
 
   // Create the SDL texture
   Globals::g_screen =
