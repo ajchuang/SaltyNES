@@ -580,76 +580,21 @@ public:
 };
 
 class InputHandler : public enable_shared_from_this<InputHandler> {
-private:
-  const uint32_t TOTAL_KEY_CNT = 255;
-  std::map<uint32_t, std::pair<bool, UserKeyHandlerIntf*>> m_user_keys;
-
-  bool any_user_key_pressed(const uint8_t* const keystate);
-  void handler_non_nes_keys(const uint8_t* const keystate);
-
 public:
-  bool register_user_key(uint32_t, UserKeyHandlerIntf*);
-
-	static const float AXES_DEAD_ZONE;
-	bool _is_gamepad_connected;
-	string _gamepad_vendor_id;
-	string _gamepad_product_id;
-	bool _is_gamepad_used;
-	bool _is_keyboard_used;
-	map<string, bool> _is_input_pressed;
-	map<string, vector<size_t> > _input_map_button;
-	map<string, vector<size_t> > _input_map_axes_pos;
-	map<string, vector<size_t> > _input_map_axes_neg;
-	static const string KEYS[];
-	static const size_t KEYS_LENGTH;
-	static bool _is_configuring_gamepad;
-	static string _configuring_gamepad_button;
-
 	// Joypad keys:
-	static const int KEY_A = 0;
-	static const int KEY_B = 1;
-	static const int KEY_START = 2;
-	static const int KEY_SELECT = 3;
-	static const int KEY_UP = 4;
-	static const int KEY_DOWN = 5;
-	static const int KEY_LEFT = 6;
-	static const int KEY_RIGHT = 7;
+  enum JoypadKeys {
+    KEY_A,
+    KEY_B,
+    KEY_START,
+    KEY_SELECT,
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    NUM_KEYS
+  };
 
-	// Key count:
-	static const int NUM_KEYS = 8;
-
-	void key_down(uint32_t key) {
-		_is_gamepad_used = false;
-		_is_keyboard_used = true;
-		switch(key) {
-			case(38): _is_input_pressed["up"] = true; break; // up = 38
-			case(37): _is_input_pressed["left"] = true; break; // left = 37
-			case(40): _is_input_pressed["down"] = true; break; // down = 40
-			case(39): _is_input_pressed["right"] = true; break; // right = 39
-			case(13): _is_input_pressed["start"] = true; break; // enter = 13
-			case(17): _is_input_pressed["select"] = true; break; // ctrl = 17
-			case(90): _is_input_pressed["b"] = true; break; // z = 90
-			case(88): _is_input_pressed["a"] = true; break; // x = 88
-		}
-	}
-	void key_up(uint32_t key) {
-		_is_gamepad_used = false;
-		_is_keyboard_used = true;
-		switch(key) {
-			case(38): _is_input_pressed["up"] = false; break; // up = 38
-			case(37): _is_input_pressed["left"] = false; break; // left = 37
-			case(40): _is_input_pressed["down"] = false; break; // down = 40
-			case(39): _is_input_pressed["right"] = false; break; // right = 39
-			case(13): _is_input_pressed["start"] = false; break; // enter = 13
-			case(17): _is_input_pressed["select"] = false; break; // ctrl = 17
-			case(90): _is_input_pressed["b"] = false; break; // z = 90
-			case(88): _is_input_pressed["a"] = false; break; // x = 88
-		}
-	}
-
-	int _id;
-	vector<bool> _keys;
-	vector<int> _map;
+  int id() { return _id; }
 
 	explicit InputHandler(int id);
 	~InputHandler();
@@ -657,6 +602,23 @@ public:
 	void mapKey(int padKey, int kbKeycode);
 	void poll_for_key_events();
 	void reset();
+  bool register_user_key(uint32_t, UserKeyHandlerIntf*);
+	void key_down(uint32_t key);
+	void key_up(uint32_t key);
+
+private:
+	int _id;
+	vector<bool> _keys;
+	vector<int> _map;
+
+	bool _is_keyboard_used;
+	std::vector<bool> _is_input_pressed;
+	map<string, vector<size_t> > _input_map_button;
+
+  std::map<uint32_t, std::pair<bool, UserKeyHandlerIntf*>> m_user_keys;
+
+  bool any_user_key_pressed(const uint8_t* const keystate);
+  void handler_non_nes_keys(const uint8_t* const keystate);
 };
 
 class Logger {

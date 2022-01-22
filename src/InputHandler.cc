@@ -8,28 +8,15 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 
 #include "SaltyNES.h"
 
-const float InputHandler::AXES_DEAD_ZONE = 0.2;
-const string InputHandler::KEYS[] = { "up", "down", "right", "left", "start", "select", "a", "b" };
-const size_t InputHandler::KEYS_LENGTH = 8;
-bool InputHandler::_is_configuring_gamepad = false;
-string InputHandler::_configuring_gamepad_button = "";
+static const uint32_t TOTAL_KEY_CNT = 255;
 
 InputHandler::InputHandler(int id) :
+  _is_input_pressed(NUM_KEYS, false),
   _id(id),
   _keys(TOTAL_KEY_CNT),
   _map(InputHandler::NUM_KEYS), enable_shared_from_this<InputHandler>() {
 
-  _is_gamepad_connected = false;
-  _is_gamepad_used = false;
   _is_keyboard_used = false;
-  _is_input_pressed["up"] = false;
-  _is_input_pressed["down"] = false;
-  _is_input_pressed["right"] = false;
-  _is_input_pressed["left"] = false;
-  _is_input_pressed["start"] = false;
-  _is_input_pressed["select"] = false;
-  _is_input_pressed["a"] = false;
-  _is_input_pressed["b"] = false;
 }
 
 InputHandler::~InputHandler() {
@@ -111,7 +98,7 @@ void InputHandler::poll_for_key_events() {
   handler_non_nes_keys(keystate); 
 
   // Check for gamepad input
-  if (! is_using_keyboard) {
+  if (!is_using_keyboard) {
     for (auto const& pair : Globals::joysticks) {
       int id = pair.first;
       SDL_Joystick* joy = pair.second;
@@ -158,3 +145,32 @@ void InputHandler::reset() {
   _keys.clear();
   _keys.resize(size);
 }
+
+void InputHandler::key_down(uint32_t key) {
+	_is_keyboard_used = true;
+	switch(key) {
+		case(38): _is_input_pressed[KEY_UP]     = true; break; // up = 38
+		case(37): _is_input_pressed[KEY_LEFT]   = true; break; // left = 37
+		case(40): _is_input_pressed[KEY_DOWN]   = true; break; // down = 40
+		case(39): _is_input_pressed[KEY_RIGHT]  = true; break; // right = 39
+		case(13): _is_input_pressed[KEY_START]  = true; break; // enter = 13
+		case(17): _is_input_pressed[KEY_SELECT] = true; break; // ctrl = 17
+		case(90): _is_input_pressed[KEY_B]      = true; break; // z = 90
+		case(88): _is_input_pressed[KEY_A]      = true; break; // x = 88
+	}
+}
+
+void InputHandler::key_up(uint32_t key) {
+	_is_keyboard_used = true;
+	switch(key) {
+		case(38): _is_input_pressed[KEY_UP]     = false; break; // up = 38
+		case(37): _is_input_pressed[KEY_LEFT]   = false; break; // left = 37
+		case(40): _is_input_pressed[KEY_DOWN]   = false; break; // down = 40
+		case(39): _is_input_pressed[KEY_RIGHT]  = false; break; // right = 39
+		case(13): _is_input_pressed[KEY_START]  = false; break; // enter = 13
+		case(17): _is_input_pressed[KEY_SELECT] = false; break; // ctrl = 17
+		case(90): _is_input_pressed[KEY_B]      = false; break; // z = 90
+		case(88): _is_input_pressed[KEY_A]      = false; break; // x = 88
+	}
+}
+

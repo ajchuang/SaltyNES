@@ -22,13 +22,14 @@ endif ()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 	set(CMAKE_C_COMPILER "emcc")
 	set(EMCC_LINKER_FLAGS "--bind -s WASM=1 -DWEB=true -std=c++14 -s USE_SDL=2 " ${MORE_FLAGS_WEB})
-	set(CMAKE_CXX_FLAGS "${EMCC_LINKER_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${EMCC_LINKER_FLAGS} ")
 endif ()
-
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 	find_package(sdl2 REQUIRED)
-	set(CMAKE_CXX_FLAGS "-O3 -std=c++14 -lSDL2 -lSDL2_mixer -lSDL2_ttf -DDESKTOP=true" ${MORE_FLAGS_NATIVE})
+  include_directories(${SDL2_INCLUDE_DIRS})
+	set(CMAKE_CXX_FLAGS "-O3 -std=c++14 -DDESKTOP=true" ${MORE_FLAGS_NATIVE})
+  set(CMAKE_EXE_LINKER_FLAGS "-lSDL2 -lSDL2_mixer -lSDL2_ttf")
 endif ()
 
 add_executable(SaltyNES ${SOURCES})
