@@ -1470,11 +1470,7 @@ void PPU::updatePalettes() {
       sprPalette[i] = nes->palTable->getEntry(ppuMem->load(0x3f10 + i) & 32);
     }
   }
-
-//renderPalettes();
-
 }
-
 
 // Updates the internal pattern
 // table buffers with this new byte.
@@ -1768,6 +1764,7 @@ void PPU::stateSave(ByteBuffer* buf) {
   for(size_t i = 0; i < bgbuffer.size(); ++i) {
     buf->putByte(static_cast<uint16_t>(bgbuffer[i]));
   }
+
   for(size_t i = 0; i < pixrendered.size(); ++i) {
     buf->putByte(static_cast<uint16_t>(pixrendered[i]));
   }
@@ -1782,7 +1779,6 @@ void PPU::stateSave(ByteBuffer* buf) {
   for(size_t i = 0; i < ptTile.size(); ++i) {
     ptTile[i].stateSave(buf);
   }
-
 }
 
 // Reset PPU:
@@ -1827,7 +1823,6 @@ void PPU::reset() {
   f_spClipping = 0; // Sprite clipping. 0=Sprites invisible in left 8-pixel column,1=No clipping
   f_bgClipping = 0; // Background clipping. 0=BG invisible in left 8-pixel column, 1=No clipping
   f_dispType = 0;   // Display type. 0=color, 1=monochrome
-
 
   // Counters:
   cntFV = 0;
