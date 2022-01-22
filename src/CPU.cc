@@ -71,7 +71,6 @@ void CPU::init() {
 	F_NOTUSED_NEW = 1;
 	F_INTERRUPT_NEW = 1;
 	irqRequested = false;
-
 }
 
 void CPU::stateLoad(ByteBuffer* buf) {
@@ -200,8 +199,7 @@ void CPU::stop() {
 }
 
 void CPU::emulate_frame() {
-	while (! this->emulate()) {
-		// ..
+	while (!emulate()) {
 	}
 }
 
@@ -957,10 +955,7 @@ void CPU::doNonMaskableInterrupt(int status) {
 
 		REG_PC_NEW = mmap->load(0xFFFA) | (mmap->load(0xFFFB) << 8);
 		--REG_PC_NEW;
-
 	}
-
-
 }
 
 void CPU::doResetInterrupt() {
@@ -969,17 +964,14 @@ void CPU::doResetInterrupt() {
 }
 
 void CPU::doIrq(int status) {
-
 	++REG_PC_NEW;
 	push((REG_PC_NEW>>8)&0xFF);
 	push(REG_PC_NEW&0xFF);
 	push(status);
 	F_INTERRUPT_NEW = 1;
 	F_BRK_NEW = 0;
-
 	REG_PC_NEW = mmap->load(0xFFFE) | (mmap->load(0xFFFF) << 8);
 	--REG_PC_NEW;
-
 }
 
 int CPU::getStatus() {

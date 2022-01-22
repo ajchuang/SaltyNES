@@ -9,7 +9,6 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 #ifndef _SALTY_NES_H_
 #define _SALTY_NES_H_
 
-
 #include <map>
 #include <vector>
 #include <sstream>
@@ -27,6 +26,7 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 #include "base64.h"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_audio.h>
 #include <SDL2/SDL_joystick.h>
 
@@ -39,6 +39,10 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 #define MB(X) (1024*KB(1)*(X))
 
 using namespace std;
+
+const uint32_t RES_WIDTH  = 256;
+const uint32_t RES_HEIGHT = 240;
+const uint32_t RES_PIXEL  = RES_WIDTH * RES_HEIGHT;
 
 // Forward declarations
 class IPapuChannel;
@@ -113,6 +117,9 @@ public:
 	static SDL_Texture* g_screen;
 	static bool is_windows;
 
+  static size_t window_width;
+  static size_t window_height;
+
 	//static shared_ptr<NES> nes;
 	static double CPU_FREQ_NTSC;
 	static double CPU_FREQ_PAL;
@@ -126,6 +133,7 @@ public:
 	static bool disableSprites;
 	static bool palEmulation;
 	static bool enableSound;
+  static bool printFps;
 
 	static std::map<string, uint32_t> keycodes; //Java key codes
 	static std::map<string, string> controls; //vNES controls codes
@@ -253,7 +261,6 @@ public:
 	int getIrqStatus();
 	void reset();
 };
-
 
 class ChannelNoise : public IPapuChannel {
 public:
@@ -564,8 +571,25 @@ public:
 	static void setOp(int inst, int op, int addr, int size, int cycles);
 };
 
-class InputHandler : public enable_shared_from_this<InputHandler> {
+// interface to register additional key mapping and handling
+// it will be copied into InputHandler
+class UserKeyHandlerIntf {
 public:
+  virtual void on_key_down() {}
+  virtual void on_key_up() {}
+};
+
+class InputHandler : public enable_shared_from_this<InputHandler> {
+private:
+  const uint32_t TOTAL_KEY_CNT = 255;
+  std::map<uint32_t, std::pair<bool, UserKeyHandlerIntf*>> m_user_keys;
+
+  bool any_user_key_pressed(const uint8_t* const keystate);
+  void handler_non_nes_keys(const uint8_t* const keystate);
+
+public:
+  bool register_user_key(uint32_t, UserKeyHandlerIntf*);
+
 	static const float AXES_DEAD_ZONE;
 	bool _is_gamepad_connected;
 	string _gamepad_vendor_id;
@@ -1113,7 +1137,7 @@ public:
 	void setScanline(int sline, uint16_t b1, uint16_t b2);
 	void renderSimple(int dx, int dy, vector<int>* fBuffer, int palAdd, int* palette);
 	void renderSmall(int dx, int dy, vector<int>* buffer, int palAdd, int* palette);
-	void render(int srcx1, int srcy1, int srcx2, int srcy2, int dx, int dy, array<int, 256 * 240>* fBuffer, int palAdd, array<int, 16>* palette, bool flipHorizontal, bool flipVertical, int pri, array<int, 256 * 240>* priTable);
+	void render(int srcx1, int srcy1, int srcx2, int srcy2, int dx, int dy, array<int, RES_PIXEL>* fBuffer, int palAdd, array<int, 16>* palette, bool flipHorizontal, bool flipVertical, int pri, array<int, RES_PIXEL>* priTable);
 	bool isTransparent(int x, int y);
 	void dumpData(string file);
 	void stateSave(ByteBuffer* buf);
@@ -1235,8 +1259,8 @@ public:
 	int address, b1, b2;
 	// Variables used when rendering:
 	array<int, 32> attrib;
-	array<int, 256 * 240> bgbuffer;
-	array<int, 256 * 240> pixrendered;
+	array<int, RES_PIXEL> bgbuffer;
+	array<int, RES_PIXEL> pixrendered;
 	//vector<int> dummyPixPriTable;
 	array<int, 64>* tpix;
 	bool requestRenderAll;
@@ -1257,9 +1281,8 @@ public:
 	int srcy1, srcy2;
 	int bufferSize, available;
 	int cycles;
-	array<int, 256 * 240> _screen_buffer;
-
-	array<int, 256 * 240>* get_screen_buffer();
+	array<int, RES_PIXEL> _screen_buffer;
+	array<int, RES_PIXEL>* get_screen_buffer();
 	vector<int>* get_pattern_buffer();
 	vector<int>* get_name_buffer();
 	vector<int>* get_img_palette_buffer();
@@ -1296,7 +1319,7 @@ public:
 	void mirroredWrite(int address, uint16_t value);
 	void triggerRendering();
 	void renderFramePartially(int startScan, int scanCount);
-	void renderBgScanline(array<int, 256 * 240>* buffer, int scan);
+	void renderBgScanline(array<int, RES_PIXEL>* buffer, int scan);
 	void renderSpritesPartially(int startscan, int scancount, bool bgPri);
 	bool checkSprite0(int scan);
 	void renderPattern();
@@ -1420,11 +1443,11 @@ public:
 	void initKeyCodes();
 };
 
-template<typename SRC, typename DST> inline void array_copy(SRC src, size_t srcPos, DST dest, size_t destPos, size_t length) {
-	assert(srcPos+length <= src->size());
-	assert(destPos+length <= dest->size());
-
-	std::copy(src->begin()+srcPos, src->begin()+srcPos+length, dest->begin()+destPos);
+template<typename SRC, typename DST> inline void array_copy(
+    SRC src, size_t srcPos, DST dest, size_t destPos, size_t length) {
+	assert(srcPos  + length <= src->size());
+	assert(destPos + length <= dest->size());
+	std::copy(src->begin() + srcPos, src->begin() + srcPos + length, dest->begin() + destPos);
 }
 
 inline string intToHexString(int i) {
@@ -1432,7 +1455,6 @@ inline string intToHexString(int i) {
 	ss << std::hex << std::showbase << i;
 	return ss.str();
 }
-
 
 inline string toUpperCase(string s) {
 	std::transform(s.begin(), s.end(), s.begin(), (int (*)(int))std::toupper);
@@ -1483,7 +1505,7 @@ inline float rand_float() {
 }
 
 template <typename T>
-inline T hexStringTo(string str) {
+inline T hexStringTo(const std::string& str) {
 	T x;
 	std::stringstream ss;
 	ss << std::hex << str;
@@ -1510,7 +1532,7 @@ inline uint8_t string_to_byte(uint8_t upper, uint8_t lower) {
 	return retval;
 }
 
-inline void log_to_browser(string message) {
+inline void log_to_browser(const std::string& message) {
 	fprintf(stdout, "%s\n", message.c_str());
 	fflush(stdout);
 }

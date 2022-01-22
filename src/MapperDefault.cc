@@ -645,29 +645,28 @@ void MapperDefault::load1kVromBank(int bank1k, int address) {
 }
 
 void MapperDefault::load2kVromBank(int bank2k, int address) {
-	if(rom->getVromBankCount() == 0) {
+	if (rom->getVromBankCount() == 0) {
 		return;
 	}
+
 	ppu->triggerRendering();
 
-	int bank4k = (bank2k / 2) % rom->getVromBankCount();
-	int bankoffset = (bank2k % 2) * 2048;
-	array_copy(rom->getVromBank(bank4k), bankoffset, &nes->ppuMem->mem, address, 2048);
+	const int bank4k = (bank2k / 2) % rom->getVromBankCount();
+	const int bankoffset = (bank2k % 2) * KB(2);
+	array_copy(rom->getVromBank(bank4k), bankoffset, &nes->ppuMem->mem, address, KB(2));
 
 	// Update tiles:
-	array<Tile, 256>* vromTile = rom->getVromBankTiles(bank4k);
+	auto vromTile = rom->getVromBankTiles(bank4k);
 	int baseIndex = address >> 4;
-	for(int i = 0; i < 128; ++i) {
+	for (int i = 0; i < 128; ++i) {
 		ppu->ptTile[baseIndex + i] = (*vromTile)[((bank2k % 2) << 7) + i];
 	}
 }
 
 void MapperDefault::load8kRomBank(int bank8k, int address) {
-	int bank16k = (bank8k / 2) % rom->getRomBankCount();
-	int offset = (bank8k % 2) * 8192;
-
-	array<uint16_t, 16384>* bank = rom->getRomBank(bank16k);
-	cpuMem->write(address, bank, offset, 8192);
+	const int bank16k = (bank8k / 2) % rom->getRomBankCount();
+	const int offset  = (bank8k & 0x01) * KB(8);
+	cpuMem->write(address, rom->getRomBank(bank16k), offset, KB(8));
 }
 
 void MapperDefault::clockIrqCounter() {

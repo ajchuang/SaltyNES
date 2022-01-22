@@ -61,7 +61,7 @@ shared_ptr<NES> NES::Init(shared_ptr<InputHandler> joy1, shared_ptr<InputHandler
 	this->_joy2->mapKey(InputHandler::KEY_RIGHT, Globals::keycodes[Globals::controls["p2_right"]]);
 
 	// Load NTSC palette:
-	if(!palTable->loadNTSCPalette()) {
+	if (!palTable->loadNTSCPalette()) {
 		//System.out.println("Unable to load palette file. Using default.");
 		palTable->loadDefaultPalette();
 	}

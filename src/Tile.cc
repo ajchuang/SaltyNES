@@ -82,26 +82,32 @@ void Tile::renderSmall(int dx, int dy, vector<int>* buffer, int palAdd, int* pal
 
 }
 
-void Tile::render(int srcx1, int srcy1, int srcx2, int srcy2, int dx, int dy, array<int, 256 * 240>* fBuffer, int palAdd, array<int, 16>* palette, bool flipHorizontal, bool flipVertical, int pri, array<int, 256 * 240>* priTable) {
-	if(dx < -7 || dx >= 256 || dy < -7 || dy >= 240) {
+void Tile::render(
+    int srcx1, int srcy1, int srcx2, int srcy2, int dx, int dy,
+    array<int, RES_PIXEL>* fBuffer, int palAdd,
+    array<int, 16>* palette,
+    bool flipHorizontal, bool flipVertical, int pri,
+    array<int, RES_PIXEL>* priTable) {
+	if (dx < -7 || dx >= RES_WIDTH || dy < -7 || dy >= RES_HEIGHT) {
 		return;
 	}
 
 	w = srcx2 - srcx1;
 	h = srcy2 - srcy1;
 
-	if(dx < 0) {
+	if (dx < 0) {
 		srcx1 -= dx;
 	}
-	if(dx + srcx2 >= 256) {
-		srcx2 = 256 - dx;
+
+	if (dx + srcx2 >= RES_WIDTH) {
+		srcx2 = RES_WIDTH - dx;
 	}
 
 	if(dy < 0) {
 		srcy1 -= dy;
 	}
-	if(dy + srcy2 >= 240) {
-		srcy2 = 240 - dy;
+	if(dy + srcy2 >= RES_HEIGHT) {
+		srcy2 = RES_HEIGHT - dy;
 	}
 
 	if(!flipHorizontal && !flipVertical) {

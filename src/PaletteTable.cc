@@ -6,9 +6,7 @@ Licensed under GPLV3 or later
 Hosted at: https://github.com/workhorsy/SaltyNES
 */
 
-
 #include "SaltyNES.h"
-
 
 int PaletteTable::curTable[64] = {0};
 int PaletteTable::origTable[64] = {0};

@@ -28,7 +28,7 @@ endif ()
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 	find_package(sdl2 REQUIRED)
-	set(CMAKE_CXX_FLAGS "-O3 -std=c++14 -lSDL2 -lSDL2_mixer -DDESKTOP=true" ${MORE_FLAGS_NATIVE})
+	set(CMAKE_CXX_FLAGS "-O3 -std=c++14 -lSDL2 -lSDL2_mixer -lSDL2_ttf -DDESKTOP=true" ${MORE_FLAGS_NATIVE})
 endif ()
 
 add_executable(SaltyNES ${SOURCES})

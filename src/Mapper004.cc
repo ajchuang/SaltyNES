@@ -10,7 +10,6 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 
 
 Mapper004::Mapper004() : MapperDefault() {
-
 }
 
 shared_ptr<MapperDefault> Mapper004::Init(shared_ptr<NES> nes) {
@@ -50,21 +49,20 @@ void Mapper004::mapperInternalStateSave(ByteBuffer* buf) {
 	buf->putInt(irqLatchValue);
 	buf->putInt(irqEnable);
 	buf->putBoolean(prgAddressChanged);
-
 }
 
 void Mapper004::write(int address, uint16_t value) {
-	if(address < 0x8000) {
+	if (address < 0x8000) {
 		// Normal memory write.
 		this->base_write(address, value);
 		return;
 	}
 
-	if(address == 0x8000) {
+	if (address == 0x8000) {
 		// Command/Address Select register
 		command = value & 7;
-		int tmp = (value >> 6) & 1;
-		if(tmp != prgAddressSelect) {
+		const int tmp = (value >> 6) & 1;
+		if (tmp != prgAddressSelect) {
 			prgAddressChanged = true;
 		}
 		prgAddressSelect = tmp;
@@ -105,59 +103,48 @@ void Mapper004::write(int address, uint16_t value) {
 }
 
 void Mapper004::executeCommand(int cmd, int arg) {
-	if(cmd == CMD_SEL_2_1K_VROM_0000) {
-
+	if (cmd == CMD_SEL_2_1K_VROM_0000) {
 		// Select 2 1KB VROM pages at 0x0000:
-		if(chrAddressSelect == 0) {
+		if (chrAddressSelect == 0) {
 			load1kVromBank(arg, 0x0000);
 			load1kVromBank(arg + 1, 0x0400);
 		} else {
 			load1kVromBank(arg, 0x1000);
 			load1kVromBank(arg + 1, 0x1400);
 		}
-
-	} else if(cmd == CMD_SEL_2_1K_VROM_0800) {
-
+	} else if (cmd == CMD_SEL_2_1K_VROM_0800) {
 		// Select 2 1KB VROM pages at 0x0800:
-		if(chrAddressSelect == 0) {
+		if (chrAddressSelect == 0) {
 			load1kVromBank(arg, 0x0800);
 			load1kVromBank(arg + 1, 0x0C00);
 		} else {
 			load1kVromBank(arg, 0x1800);
 			load1kVromBank(arg + 1, 0x1C00);
 		}
-
-	} else if(cmd == CMD_SEL_1K_VROM_1000) {
-
+	} else if (cmd == CMD_SEL_1K_VROM_1000) {
 		// Select 1K VROM Page at 0x1000:
-		if(chrAddressSelect == 0) {
+		if (chrAddressSelect == 0) {
 			load1kVromBank(arg, 0x1000);
 		} else {
 			load1kVromBank(arg, 0x0000);
 		}
-
-	} else if(cmd == CMD_SEL_1K_VROM_1400) {
-
+	} else if (cmd == CMD_SEL_1K_VROM_1400) {
 		// Select 1K VROM Page at 0x1400:
-		if(chrAddressSelect == 0) {
+		if (chrAddressSelect == 0) {
 			load1kVromBank(arg, 0x1400);
 		} else {
 			load1kVromBank(arg, 0x0400);
 		}
-
-	} else if(cmd == CMD_SEL_1K_VROM_1800) {
-
+	} else if (cmd == CMD_SEL_1K_VROM_1800) {
 		// Select 1K VROM Page at 0x1800:
-		if(chrAddressSelect == 0) {
+		if (chrAddressSelect == 0) {
 			load1kVromBank(arg, 0x1800);
 		} else {
 			load1kVromBank(arg, 0x0800);
 		}
-
-	} else if(cmd == CMD_SEL_1K_VROM_1C00) {
-
+	} else if (cmd == CMD_SEL_1K_VROM_1C00) {
 		// Select 1K VROM Page at 0x1C00:
-		if(chrAddressSelect == 0) {
+		if (chrAddressSelect == 0) {
 			load1kVromBank(arg, 0x1C00);
 		} else {
 			load1kVromBank(arg, 0x0C00);

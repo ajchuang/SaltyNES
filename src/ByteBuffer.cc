@@ -323,12 +323,6 @@ bool ByteBuffer::putByteArray(vector<uint16_t>* arr) {
 
   std::copy_n(arr->begin(), arr->size(), buf.begin() + curPos);
 
-#if 0
-	for(size_t i = 0; i < arr->size(); ++i) {
-		buf[curPos + i] = static_cast<uint8_t>((*arr)[i]);
-	}
-#endif
-
 	curPos += arr->size();
 	return true;
 }
