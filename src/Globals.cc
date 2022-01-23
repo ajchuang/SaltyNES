@@ -19,10 +19,10 @@ size_t Globals::window_height = 2 * RES_HEIGHT;
 
 double Globals::CPU_FREQ_NTSC   = 1789772.5;
 double Globals::CPU_FREQ_PAL    = 1773447.4;
-int Globals::preferredFrameRate = 50;
+int Globals::preferredFrameRate = 60;
 
 // Microseconds per frame:
-const double Globals::MS_PER_FRAME = 1000000.0 / 50;
+const double Globals::MS_PER_FRAME = 1000000.0 / 60;
 // What value to flush memory with on power-up:
 uint16_t Globals::memoryFlushValue = 0xFF;
 
