@@ -320,26 +320,20 @@ static void render_fps() {
   if (Globals::printFps == false)
     return;
 
-  static TTF_Font* font = nullptr;
-  if (font == nullptr) {
-    font = TTF_OpenFont("/Library/Fonts/Arial.ttf", 16);
-  }
-  if (font == nullptr) {
-    printf("%s\n", TTF_GetError());
-    exit(-1);
-  }
   std::stringstream ss;
   ss << last_fps;
-
-  SDL_Color color = { 255, 255, 128 };
-  auto text = TTF_RenderText_Solid(font, ss.str().data(), color);
-  auto texture = SDL_CreateTextureFromSurface(Globals::g_renderer, text);
+  auto text =
+      TTF_RenderText_Solid(
+          Globals::g_osd_font,
+          ss.str().data(),
+          *(Globals::g_osd_color));
+  auto texture =
+      SDL_CreateTextureFromSurface(Globals::g_renderer, text);
   SDL_Rect dest = { 4, 4, text->w, text->h };
   SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
   SDL_RenderCopy(Globals::g_renderer, texture, nullptr, &dest);
   SDL_DestroyTexture(texture);
   SDL_FreeSurface(text);
-  //TTF_CloseFont(font)
 }
 
 void PPU::startVBlank() {

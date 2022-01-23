@@ -113,9 +113,15 @@ public:
 // Class Prototypes
 class Globals {
 public:
+  /* NES output resources */
 	static SDL_Window* g_window;
 	static SDL_Renderer* g_renderer;
 	static SDL_Texture* g_screen;
+
+  /* osd resources */
+  static TTF_Font* g_osd_font;
+  static SDL_Color* g_osd_color;
+
 	static bool is_windows;
 
   static size_t window_width;
@@ -1501,11 +1507,20 @@ inline void log_to_browser(const std::string& message) {
 }
 
 std::string get_current_time_string();
+
 #define mlog(...) \
     { \
       printf("[%s: %s] ", __func__, get_current_time_string().c_str()); \
       printf(__VA_ARGS__); \
       printf("\n"); \
+    }
+#define merr(cond, ...) \
+    { \
+      if (!(cond)) { \
+        fprintf(stderr, "[Error] "); \
+        fprintf(stderr, __VA_ARGS__);  \
+        exit(-1); \
+      } \
     }
 
 #endif // _SALTY_NES_H_

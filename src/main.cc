@@ -112,7 +112,6 @@ void set_game_data_from_file(string file_name) {
 }
 
 #ifdef WEB
-
 EMSCRIPTEN_BINDINGS(Wrappers) {
   emscripten::function("set_game_data_size", &set_game_data_size);
   emscripten::function("set_game_data_index", &set_game_data_index);
@@ -121,6 +120,14 @@ EMSCRIPTEN_BINDINGS(Wrappers) {
   emscripten::function("set_is_windows", &set_is_windows);
 };
 #endif
+
+static void init_ttf() {
+  TTF_Init();
+  static const SDL_Color color = { 255, 255, 128, 64 };
+  g_osd_color = &color;
+  g_osd_font = TTF_OpenFont("./static/Arial.ttf", 16);
+  merr(g_ods_font, "Failed to open font(%s)", TTF_GetError());
+}
 
 int main(int argc, char* argv[]) {
   printf("%s\n", "SaltyNES is a NES emulator in WebAssembly");
@@ -137,19 +144,14 @@ int main(int argc, char* argv[]) {
       return -1;
     }
     set_game_data_from_file(argv[1]);
-#endif
-#ifdef WEB
+#else    
     g_game_file_name = "rom_from_browser.nes";
 #endif
 
   // Initialize SDL
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) != 0) {
-    fprintf(stderr, "Could not initialize SDL: %s\n", SDL_GetError());
-    return -1;
-  }
-
-  // init TTF engine
-  TTF_Init();
+  auto ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
+  merr(ret == 0, "Could not initialize SDL: %s", SDL_GetError());
+  init_ttf();
 
   // Create a SDL window
   Globals::g_window =
@@ -157,20 +159,19 @@ int main(int argc, char* argv[]) {
         "SaltyNES",
         0, 0, Globals::window_width, Globals::window_height,
         SDL_WINDOW_RESIZABLE);
-  if (Globals::g_window == nullptr) {
-    fprintf(stderr, "Couldn't create a window: %s\n", SDL_GetError());
-    return -1;
-  }
+  merr(
+      Globals::g_window,
+      "Couldn't create a window: %s", SDL_GetError());
 
   // Create a SDL renderer
   Globals::g_renderer = SDL_CreateRenderer(
       Globals::g_window,
       -1,
       SDL_RENDERER_ACCELERATED);
-  if (! Globals::g_renderer) {
-    fprintf(stderr, "Couldn't create a renderer: %s\n", SDL_GetError());
-    return -1;
-  }
+  merr(
+      Globals::g_renderer,
+      "Couldn't create a renderer: %s", SDL_GetError());
+
   SDL_RenderSetLogicalSize(Globals::g_renderer, RES_WIDTH, RES_HEIGHT);
 
   // Create the SDL texture
@@ -180,10 +181,9 @@ int main(int argc, char* argv[]) {
           SDL_PIXELFORMAT_BGR888,
           SDL_TEXTUREACCESS_STATIC,
           RES_WIDTH, RES_HEIGHT);
-  if (! Globals::g_screen) {
-    fprintf(stderr, "Couldn't create a teture: %s\n", SDL_GetError());
-    return -1;
-  }
+  merr(
+      Globals::g_screen,
+      "Couldn't create a teture: %s", SDL_GetError());
 
 #ifdef DESKTOP
   on_emultor_start();
