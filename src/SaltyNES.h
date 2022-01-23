@@ -39,6 +39,10 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 #define KB(X) (1024*(X))
 #define MB(X) (1024*KB(1)*(X))
 
+#define IS_SET(V,N) (((V) & (1ul << (N))) != 0)
+#define BIT_SET(V,N) ((V) | (1ul << (N)))
+#define BIT_CLR(V,N) ((V) & (1ul << (N)))
+
 using namespace std;
 
 const uint32_t RES_WIDTH  = 256;
@@ -417,6 +421,29 @@ public:
 	int F_BRK;
 	int F_OVERFLOW;
 	int F_SIGN;
+
+  void status_reg(const int temp) {
+    F_CARRY     = (temp   ) & 1;
+    F_ZERO      = (((temp >> 1) & 1) == 1) ? 0 : 1;
+    F_INTERRUPT = (temp >> 2) & 1;
+    F_DECIMAL   = (temp >> 3) & 1;
+    F_BRK       = (temp >> 4) & 1;
+    F_NOTUSED   = (temp >> 5) & 1;
+    F_OVERFLOW  = (temp >> 6) & 1;
+    F_SIGN      = (temp >> 7) & 1;
+  }
+
+  int status_reg() {
+    return
+        (F_CARRY & 0x01)     |
+        ((F_ZERO == 0) << 1) |
+        (F_INTERRUPT   << 2) |
+        (F_DECIMAL     << 3) |
+        (F_BRK         << 4) |
+        (F_NOTUSED     << 5) |
+        (F_OVERFLOW    << 6) |
+        (F_SIGN        << 7);
+  }
 
 	// Misc. variables
 	int opinf;

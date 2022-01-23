@@ -123,10 +123,10 @@ EMSCRIPTEN_BINDINGS(Wrappers) {
 
 static void init_ttf() {
   TTF_Init();
-  static const SDL_Color color = { 255, 255, 128, 64 };
-  g_osd_color = &color;
-  g_osd_font = TTF_OpenFont("./static/Arial.ttf", 16);
-  merr(g_ods_font, "Failed to open font(%s)", TTF_GetError());
+  static SDL_Color color = { 255, 255, 128, 64 };
+  Globals::g_osd_color = &color;
+  Globals::g_osd_font = TTF_OpenFont("./static/Arial.ttf", 16);
+  merr(Globals::g_osd_font, "Failed to open font(%s)", TTF_GetError());
 }
 
 int main(int argc, char* argv[]) {

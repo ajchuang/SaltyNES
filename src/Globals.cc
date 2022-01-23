@@ -8,9 +8,11 @@ Hosted at: https://github.com/workhorsy/SaltyNES
 
 #include "SaltyNES.h"
 
-SDL_Window* Globals::g_window       = nullptr;
+SDL_Window*   Globals::g_window     = nullptr;
 SDL_Renderer* Globals::g_renderer   = nullptr;
-SDL_Texture* Globals::g_screen      = nullptr;
+SDL_Texture*  Globals::g_screen     = nullptr;
+TTF_Font*     Globals::g_osd_font   = nullptr;
+SDL_Color*    Globals::g_osd_color  = nullptr;
 
 size_t Globals::window_width = 2 * RES_WIDTH;
 size_t Globals::window_height = 2 * RES_HEIGHT;

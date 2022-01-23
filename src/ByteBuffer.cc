@@ -6,36 +6,21 @@ Licensed under GPLV3 or later
 Hosted at: https://github.com/workhorsy/SaltyNES
 */
 
-
 #include "SaltyNES.h"
 
-
-
-ByteBuffer::ByteBuffer(size_t size, const int byteOrdering) {
-	if(size < 1) {
-		size = 1;
-	}
-	this->buf = vector<uint16_t>(size, 0);
-	this->byteOrder = byteOrdering;
-	curPos = 0;
-	hasBeenErrors = false;
+ByteBuffer::ByteBuffer(size_t size, const int byteOrdering) :
+    buf(std::max((size_t)1, size), 0),
+    byteOrder(byteOrdering),
+    curPos(0),
+    hasBeenErrors(false) {
 }
 
 ByteBuffer::ByteBuffer(vector<uint8_t>* content, const int byteOrdering) {
-	try {
-		this->buf = std::vector<uint16_t>(content->begin(), content->end());
-    //std::copy(content->begin(), contenst->end(), this->buf.begin());
-#if 0
-		for(size_t i = 0; i < content->size(); ++i) {
-			buf[i] = static_cast<uint16_t>((*content)[i] & 255);
-		}
-#endif
-		this->byteOrder = byteOrdering;
-		curPos = 0;
-		hasBeenErrors = false;
-	} catch (exception& e) {
-		//System.out.println("ByteBuffer: Couldn't create buffer from empty array.");
-	}
+  this->buf.resize(content->size());
+  std::copy(content->begin(), content->end(), this->buf.begin());
+  this->byteOrder = byteOrdering;
+  curPos = 0;
+  hasBeenErrors = false;
 }
 
 void ByteBuffer::setExpandable(bool exp) {
@@ -88,10 +73,10 @@ bool ByteBuffer::fillRange(size_t start, size_t length, uint8_t value) {
 	if (inRange(start, length)) {
     std::fill_n(buf.begin() + start, length, value);
 		return true;
-	} else {
-		error();
-		return false;
 	}
+
+  error();
+  return false;
 }
 
 void ByteBuffer::resize(size_t length) {

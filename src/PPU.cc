@@ -194,11 +194,6 @@ void PPU::init() {
   // Initialize misc vars:
   scanline = 0;
 
-  // Create pattern table tile buffers:
-  for(size_t i = 0; i < ptTile.size(); ++i) {
-    ptTile[i] = Tile();
-  }
-
   // Create nametable buffers:
   for(size_t i = 0; i < nameTable.size(); ++i) {
     stringstream name;
@@ -207,7 +202,7 @@ void PPU::init() {
   }
 
   // Initialize mirroring lookup table:
-  for(size_t i = 0; i < 0x8000; ++i) {
+  for (size_t i = 0; i < 0x8000; ++i) {
     vramMirrorTable[i] = i;
   }
 
@@ -216,8 +211,8 @@ void PPU::init() {
 }
 
 // Sets Nametable mirroring.
-void PPU::setMirroring(int mirroring) {
-  if(mirroring == currentMirroring) {
+void PPU::setMirroring (int mirroring) {
+  if (mirroring == currentMirroring) {
     return;
   }
 
@@ -281,7 +276,7 @@ void PPU::setMirroring(int mirroring) {
 // Assumes the regions don't overlap.
 // The 'to' region is the region that is physically in memory.
 void PPU::defineMirrorRegion(size_t fromStart, size_t toStart, size_t size) {
-  for(size_t i = 0; i < size; ++i) {
+  for (size_t i = 0; i < size; ++i) {
     vramMirrorTable[fromStart + i] = toStart + i;
   }
 }
@@ -347,7 +342,6 @@ void PPU::startVBlank() {
   }
 
   endFrame();
-
   nes->papu->writeBuffer();
 
   // Actually draw the screen
@@ -546,34 +540,9 @@ void PPU::startFrame() {
     // Use first entry of image palette as BG color.
     bgColor = imgPalette[0];
   } else {
-    // Monochrome display.
-    // f_color determines the bg color.
-    switch (f_color) {
-      case 0: {
-        // Black
-        bgColor = 0x00000;
-        break;
-      }
-      case 1: {
-        // Green
-        bgColor = 0x00FF00;
-      }
-      case 2: {
-        // Blue
-        bgColor = 0xFF0000;
-      }
-      case 3: {
-        // Invalid. Use black.
-        bgColor = 0x000000;
-      }
-      case 4: {
-        // Red
-        bgColor = 0x0000FF;
-      }
-      default: {
-        // Invalid. Use black.
-        bgColor = 0x0;
-      }
+    const int bg_values[] = { 0x00, 0xff00, 0xff0000, 0x00, 0xff };
+    if (f_color < sizeof(bg_values)) {
+      bgColor = bg_values[f_color];
     }
   }
 
@@ -583,23 +552,33 @@ void PPU::startFrame() {
 
 void PPU::endFrame() {
   // Draw spr#0 hit coordinates:
-  if(showSpr0Hit) {
+  if (showSpr0Hit) {
     // Spr 0 position:
-    if(sprX[0] >= 0 && sprX[0] < 256 && sprY[0] >= 0 && sprY[0] < 240) {
-      for(size_t i = 0; i < 256; ++i) {
-        _screen_buffer[(sprY[0] << 8) + i] = 0xFF5555;
-      }
-      for(size_t i = 0; i < 240; ++i) {
-        _screen_buffer[(i << 8) + sprX[0]] = 0xFF5555;
+    const auto sprx_0 = sprX[0];
+    const auto spry_0 = sprY[0];
+
+    if ((0 <= sprx_0 && sprx_0 < RES_WIDTH) &&
+        (0 <= spry_0 && spry_0 < RES_HEIGHT)) {
+      const auto spry_0x256 = (spry_0 << 8);
+      std::fill_n(_screen_buffer.begin() + spry_0x256, RES_WIDTH, 0xFF5555);
+
+      /* vertical access */
+      int* const shifted_head = (int*)(_screen_buffer.data()) + sprx_0;
+      for (size_t i = 0; i < RES_HEIGHT; ++i) {
+        shifted_head[(i << 8)] = 0xFF5555;
       }
     }
+
     // Hit position:
-    if(spr0HitX >= 0 && spr0HitX < 256 && spr0HitY >= 0 && spr0HitY < 240) {
-      for(size_t i = 0; i < 256; ++i) {
-        _screen_buffer[(spr0HitY << 8) + i] = 0x55FF55;
-      }
-      for(size_t i = 0; i < 240; ++i) {
-        _screen_buffer[(i << 8) + spr0HitX] = 0x55FF55;
+    if ((spr0HitX >= 0 && spr0HitX < RES_WIDTH) &&
+        (spr0HitY >= 0 && spr0HitY < RES_HEIGHT)) {
+      const auto spr0HitYx256 = (spr0HitY << 8);
+      std::fill_n(_screen_buffer.begin() + spr0HitYx256, RES_WIDTH, 0x55FF55);
+
+      /* vertical access */
+      int* const shifted_head = (int*)(_screen_buffer.data()) + spr0HitX;
+      for (size_t i = 0; i < RES_HEIGHT; ++i) {
+        shifted_head[(i << 8)] = 0x55FF55;
       }
     }
   }
@@ -643,7 +622,6 @@ void PPU::setStatusFlag(int flag, bool value) {
   nes->getCpuMemory()->write(0x2002, static_cast<uint16_t>(memValue));
 }
 
-
 // CPU Register $2002:
 // Read the Status Register.
 uint16_t PPU::readStatusRegister() {
@@ -686,7 +664,6 @@ void PPU::sramWrite(uint16_t value) {
   sramAddress %= 0x100;
 }
 
-
 // CPU Register $2005:
 // Write to scroll registers.
 // The first write is the vertical offset, the second is the
@@ -713,14 +690,12 @@ void PPU::scrollWrite(uint16_t value) {
 // Sets the adress used when reading/writing from/to VRAM.
 // The first write sets the high byte, the second the low byte.
 void PPU::writeVRAMAddress(int address) {
-  if(firstWrite) {
+  if (firstWrite) {
     regFV = (address >> 4) & 3;
     regV = (address >> 3) & 1;
     regH = (address >> 2) & 1;
     regVT = (regVT & 7) | ((address & 3) << 3);
-
   } else {
-
     triggerRendering();
 
     regVT = (regVT & 24) | ((address >> 5) & 7);
@@ -1159,20 +1134,17 @@ bool PPU::checkSprite0(int scan) {
   int tIndexAdd = (f_spPatternTable == 0 ? 0 : 256);
   int x, y;
   int bufferIndex;
-  //int col;
-  //bool bgPri;
   Tile* t;
 
   x = sprX[0];
   y = sprY[0] + 1;
 
-
-  if(f_spriteSize == 0) {
+  if (f_spriteSize == 0) {
 
     // 8x8 sprites.
 
     // Check range:
-    if(y <= scan && y + 8 > scan && x >= -7 && x < 256) {
+    if (y <= scan && y + 8 > scan && x >= -7 && x < 256) {
 
       // Sprite is in range.
       // Draw scanline:

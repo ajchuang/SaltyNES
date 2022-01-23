@@ -18,204 +18,192 @@ CPU::CPU() : enable_shared_from_this<CPU>() {
 }
 
 shared_ptr<CPU> CPU::Init(shared_ptr<NES> nes) {
-	this->nes = nes;
-	this->mmap = nullptr;
-	this->mem = nullptr;
+  this->nes = nes;
+  this->mmap = nullptr;
+  this->mem = nullptr;
 
-	// CPU Registers:
-	this->REG_ACC_NEW = 0;
-	this->REG_X_NEW = 0;
-	this->REG_Y_NEW = 0;
-	this->REG_STATUS_NEW = 0;
-	this->REG_PC_NEW = 0;
-	this->REG_SP = 0;
+  // CPU Registers:
+  this->REG_ACC_NEW = 0;
+  this->REG_X_NEW = 0;
+  this->REG_Y_NEW = 0;
+  this->REG_STATUS_NEW = 0;
+  this->REG_PC_NEW = 0;
+  this->REG_SP = 0;
 
-	// Status flags:
-	this->F_CARRY_NEW = 0;
-	this->F_ZERO_NEW = 0;
-	this->F_INTERRUPT_NEW = 0;
-	this->F_DECIMAL_NEW = 0;
-	this->F_BRK_NEW = 0;
-	this->F_NOTUSED_NEW = 0;
-	this->F_OVERFLOW_NEW = 0;
-	this->F_SIGN_NEW = 0;
+  // Status flags:
+  this->F_CARRY_NEW = 0;
+  this->F_ZERO_NEW = 0;
+  this->F_INTERRUPT_NEW = 0;
+  this->F_DECIMAL_NEW = 0;
+  this->F_BRK_NEW = 0;
+  this->F_NOTUSED_NEW = 0;
+  this->F_OVERFLOW_NEW = 0;
+  this->F_SIGN_NEW = 0;
 
-	// Interrupt notification:
-	this->irqRequested = false;
-	this->irqType = 0;
+  // Interrupt notification:
+  this->irqRequested = false;
+  this->irqType = 0;
 
-	// Misc vars:
-	this->cyclesToHalt = 0;
-	this->stopRunning = false;
-	this->crash = false;
-	return shared_from_this();
+  // Misc vars:
+  this->cyclesToHalt = 0;
+  this->stopRunning = false;
+  this->crash = false;
+  return shared_from_this();
 }
 
 CPU::~CPU() {
-	nes 	= nullptr;
-	mmap 	= nullptr;
+  nes   = nullptr;
+  mmap  = nullptr;
 }
 
 // Initialize:
 void CPU::init() {
-	CpuInfo::initOpData();
+  CpuInfo::initOpData();
 
-	// Get Memory Mapper:
-	this->mmap = nes->getMemoryMapper();
+  // Get Memory Mapper:
+  this->mmap = nes->getMemoryMapper();
 
-	// Reset crash flag:
-	crash = false;
+  // Reset crash flag:
+  crash = false;
 
-	// Set flags:
-	F_BRK_NEW = 1;
-	F_NOTUSED_NEW = 1;
-	F_INTERRUPT_NEW = 1;
-	irqRequested = false;
+  // Set flags:
+  F_BRK_NEW = 1;
+  F_NOTUSED_NEW = 1;
+  F_INTERRUPT_NEW = 1;
+  irqRequested = false;
 }
 
 void CPU::stateLoad(ByteBuffer* buf) {
-	if (buf->readByte() == 1) {
-		// Version 1
-		// Registers:
-		setStatus(buf->readInt());
-		REG_ACC_NEW = buf->readInt();
-		REG_PC_NEW  = buf->readInt();
-		REG_SP      = buf->readInt();
-		REG_X_NEW   = buf->readInt();
-		REG_Y_NEW   = buf->readInt();
+  if (buf->readByte() == 1) {
+    // Version 1
+    // Registers:
+    setStatus(buf->readInt());
+    REG_ACC_NEW = buf->readInt();
+    REG_PC_NEW  = buf->readInt();
+    REG_SP      = buf->readInt();
+    REG_X_NEW   = buf->readInt();
+    REG_Y_NEW   = buf->readInt();
 
-		// Cycles to halt:
-		cyclesToHalt = buf->readInt();
-	}
+    // Cycles to halt:
+    cyclesToHalt = buf->readInt();
+  }
 }
 
 void CPU::stateSave(ByteBuffer* buf) {
 
-	// Save info version:
-	buf->putByte(static_cast<uint16_t>(1));
+  // Save info version:
+  buf->putByte(static_cast<uint16_t>(1));
 
-	// Save registers:
-	buf->putInt(getStatus());
-	buf->putInt(REG_ACC_NEW);
-	buf->putInt(REG_PC_NEW );
-	buf->putInt(REG_SP     );
-	buf->putInt(REG_X_NEW  );
-	buf->putInt(REG_Y_NEW  );
+  // Save registers:
+  buf->putInt(getStatus());
+  buf->putInt(REG_ACC_NEW);
+  buf->putInt(REG_PC_NEW );
+  buf->putInt(REG_SP     );
+  buf->putInt(REG_X_NEW  );
+  buf->putInt(REG_Y_NEW  );
 
-	// Cycles to halt:
-	buf->putInt(cyclesToHalt);
-
+  // Cycles to halt:
+  buf->putInt(cyclesToHalt);
 }
 
 void CPU::reset() {
+  REG_ACC_NEW = 0;
+  REG_X_NEW = 0;
+  REG_Y_NEW = 0;
 
-	REG_ACC_NEW = 0;
-	REG_X_NEW = 0;
-	REG_Y_NEW = 0;
+  irqRequested = false;
+  irqType = 0;
 
-	irqRequested = false;
-	irqType = 0;
+  // Reset Stack pointer:
+  REG_SP = 0x01FF;
 
-	// Reset Stack pointer:
-	REG_SP = 0x01FF;
+  // Reset Program counter:
+  REG_PC_NEW = 0x8000-1;
 
-	// Reset Program counter:
-	REG_PC_NEW = 0x8000-1;
+  // Reset Status register:
+  REG_STATUS_NEW = 0x28;
+  setStatus(0x28);
 
-	// Reset Status register:
-	REG_STATUS_NEW = 0x28;
-	setStatus(0x28);
+  // Reset crash flag:
+  crash = false;
 
-	// Reset crash flag:
-	crash = false;
+  // Set flags:
+  F_CARRY_NEW = 0;
+  F_DECIMAL_NEW = 0;
+  F_INTERRUPT_NEW = 1;
+  F_OVERFLOW_NEW = 0;
+  F_SIGN_NEW = 0;
+  F_ZERO_NEW = 0;
 
-	// Set flags:
-	F_CARRY_NEW = 0;
-	F_DECIMAL_NEW = 0;
-	F_INTERRUPT_NEW = 1;
-	F_OVERFLOW_NEW = 0;
-	F_SIGN_NEW = 0;
-	F_ZERO_NEW = 0;
+  F_NOTUSED_NEW = 1;
+  F_BRK_NEW = 1;
 
-	F_NOTUSED_NEW = 1;
-	F_BRK_NEW = 1;
-
-	cyclesToHalt = 0;
-
-
+  cyclesToHalt = 0;
 }
 
 void CPU::start() {
-	stopRunning = false;
+  stopRunning = false;
 
-	// Registers:
-	REG_ACC 	= REG_ACC_NEW;
-	REG_X 		= REG_X_NEW;
-	REG_Y 		= REG_Y_NEW;
-	REG_STATUS 	= REG_STATUS_NEW;
-	REG_PC 		= REG_PC_NEW;
+  // Registers:
+  REG_ACC   = REG_ACC_NEW;
+  REG_X     = REG_X_NEW;
+  REG_Y     = REG_Y_NEW;
+  REG_STATUS  = REG_STATUS_NEW;
+  REG_PC    = REG_PC_NEW;
 
-	// Status flags:
-	F_CARRY 	= F_CARRY_NEW;
-	F_ZERO 	= (F_ZERO_NEW == 0);
-	F_INTERRUPT = F_INTERRUPT_NEW;
-	F_DECIMAL 	= F_DECIMAL_NEW;
-	F_NOTUSED   = F_NOTUSED_NEW;
-	F_BRK 	= F_BRK_NEW;
-	F_OVERFLOW 	= F_OVERFLOW_NEW;
-	F_SIGN 	= F_SIGN_NEW;
+  // Status flags:
+  F_CARRY   = F_CARRY_NEW;
+  F_ZERO  = (F_ZERO_NEW == 0);
+  F_INTERRUPT = F_INTERRUPT_NEW;
+  F_DECIMAL   = F_DECIMAL_NEW;
+  F_NOTUSED   = F_NOTUSED_NEW;
+  F_BRK   = F_BRK_NEW;
+  F_OVERFLOW  = F_OVERFLOW_NEW;
+  F_SIGN  = F_SIGN_NEW;
 
-	// Misc. variables
-	opinf = 0;
-	opaddr = 0;
-	addrMode = 0;
-	addr = 0;
-	palCnt = 0;
-	cycleCount = 0;
-	cycleAdd = 0;
-	temp = 0;
-	add = 0;
+  // Misc. variables
+  opinf = 0;
+  opaddr = 0;
+  addrMode = 0;
+  addr = 0;
+  palCnt = 0;
+  cycleCount = 0;
+  cycleAdd = 0;
+  temp = 0;
+  add = 0;
 }
 
 void CPU::stop() {
-	stopRunning = true;
+  stopRunning = true;
 
-	// Save registers:
-	REG_ACC_NEW 	= REG_ACC;
-	REG_X_NEW 	= REG_X;
-	REG_Y_NEW 	= REG_Y;
-	REG_STATUS_NEW 	= REG_STATUS;
-	REG_PC_NEW 	= REG_PC;
+  // Save registers:
+  REG_ACC_NEW   = REG_ACC;
+  REG_X_NEW   = REG_X;
+  REG_Y_NEW   = REG_Y;
+  REG_STATUS_NEW  = REG_STATUS;
+  REG_PC_NEW  = REG_PC;
 
-	// Save Status flags:
-	F_CARRY_NEW 	= F_CARRY;
-	F_ZERO_NEW 	= (F_ZERO==0?1:0);
-	F_INTERRUPT_NEW = F_INTERRUPT;
-	F_DECIMAL_NEW 	= F_DECIMAL;
-	F_BRK_NEW 	= F_BRK;
-	F_NOTUSED_NEW   = F_NOTUSED;
-	F_OVERFLOW_NEW 	= F_OVERFLOW;
-	F_SIGN_NEW 	= F_SIGN;
+  // Save Status flags:
+  F_CARRY_NEW   = F_CARRY;
+  F_ZERO_NEW  = (F_ZERO==0?1:0);
+  F_INTERRUPT_NEW = F_INTERRUPT;
+  F_DECIMAL_NEW   = F_DECIMAL;
+  F_BRK_NEW   = F_BRK;
+  F_NOTUSED_NEW   = F_NOTUSED;
+  F_OVERFLOW_NEW  = F_OVERFLOW;
+  F_SIGN_NEW  = F_SIGN;
 }
 
 void CPU::emulate_frame() {
-	while (!emulate()) {
-	}
+  while (!emulate()) {
+  }
 }
 
 void CPU::handle_irq() {
   if (not irqRequested)
     return;
 
-  const int tempx =
-    (F_CARRY)             |
-    ((F_ZERO == 0) << 1)  |
-    (F_INTERRUPT   << 2)  |
-    (F_DECIMAL     << 3)  |
-    (F_BRK         << 4)  |
-    (F_NOTUSED     << 5)  |
-    (F_OVERFLOW    << 6)  |
-    (F_SIGN        << 7);
+  const int tempx = status_reg();
 
   REG_PC_NEW = REG_PC;
   F_INTERRUPT_NEW = F_INTERRUPT;
@@ -364,15 +352,15 @@ bool CPU::exec_inst() {
     case 2: { // * ASL *
       // Shift left one bit
       if (addrMode == 4) { // ADDR_ACC = 4
-        F_CARRY = (REG_ACC>>7)&1;
-        REG_ACC = (REG_ACC<<1)&255;
-        F_SIGN = (REG_ACC>>7)&1;
+        F_CARRY = IS_SET(REG_ACC, 7); // (REG_ACC>>7)&1;
+        REG_ACC = (REG_ACC << 1) & 0xff;
+        F_SIGN = IS_SET(REG_ACC, 7); // (REG_ACC>>7)&1;
         F_ZERO = REG_ACC;
       } else {
         temp = load(addr);
-        F_CARRY = (temp >> 7) & 1;
-        temp = (temp << 1) & 255;
-        F_SIGN = (temp >> 7) & 1;
+        F_CARRY = IS_SET(temp, 7); // (temp >> 7) & 1;
+        temp = (temp << 1) & 0xff;
+        F_SIGN = IS_SET(temp, 7); // (temp >> 7) & 1;
         F_ZERO = temp;
         write(addr, static_cast<uint16_t>(temp));
       }
@@ -439,17 +427,7 @@ bool CPU::exec_inst() {
       push((REG_PC >> 8) & 0xff);
       push(REG_PC & 0xff);
       F_BRK = 1;
-      push(
-        (F_CARRY)|
-        ((F_ZERO==0)<<1)|
-        (F_INTERRUPT<<2)|
-        (F_DECIMAL<<3)|
-        (F_BRK<<4)|
-        (F_NOTUSED<<5)|
-        (F_OVERFLOW<<6)|
-        (F_SIGN<<7)
-      );
-
+      push(status_reg());
       F_INTERRUPT = 1;
       REG_PC = (load16bit(0xFFFE) - 1);
       break;
@@ -634,35 +612,19 @@ bool CPU::exec_inst() {
     case 36: {  // * PHP *
       // Push processor status on stack
       F_BRK = 1;
-      push(
-        (F_CARRY)|
-        ((F_ZERO==0)<<1)|
-        (F_INTERRUPT<<2)|
-        (F_DECIMAL<<3)|
-        (F_BRK<<4)|
-        (F_NOTUSED<<5)|
-        (F_OVERFLOW<<6)|
-        (F_SIGN<<7)
-      );
+      push(status_reg());
       break;
     }
     case 37: {  // * PLA *
       // Pop accumulator from stack
       F_ZERO = REG_ACC = pull();
-      F_SIGN = (REG_ACC >> 7) & 1;
+      F_SIGN = IS_SET(REG_ACC, 7); //(REG_ACC >> 7) & 1;
       break;
     }
     case 38: {  // * PLP *
       // Pull processor status from stack
       temp = pull();
-      F_CARRY     = (temp   )&1;
-      F_ZERO      = (((temp>>1)&1)==1)?0:1;
-      F_INTERRUPT = (temp>>2)&1;
-      F_DECIMAL   = (temp>>3)&1;
-      F_BRK       = (temp>>4)&1;
-      F_NOTUSED   = (temp>>5)&1;
-      F_OVERFLOW  = (temp>>6)&1;
-      F_SIGN      = (temp>>7)&1;
+      status_reg(temp);
       F_NOTUSED = 1;
       break;
     }
@@ -671,20 +633,18 @@ bool CPU::exec_inst() {
       if (addrMode == 4) { // ADDR_ACC = 4
         temp = REG_ACC;
         add = F_CARRY;
-        F_CARRY = (temp>>7)&1;
-
-        temp = ((temp<<1)&0xFF)+add;
+        F_CARRY = IS_SET(temp, 7); //(temp>>7)&1;
+        temp = ((temp << 1) & 0xFF) + add;
         REG_ACC = temp;
       } else {
         temp = load(addr);
         add = F_CARRY;
-        F_CARRY = (temp>>7)&1;
-
-        temp = ((temp<<1)&0xFF)+add;
+        F_CARRY = IS_SET(temp, 7);
+        temp = ((temp << 1) & 0xFF) + add;
         write(addr, static_cast<uint16_t>(temp));
       }
 
-      F_SIGN = (temp>>7)&1;
+      F_SIGN = IS_SET(temp, 7); //(temp>>7)&1;
       F_ZERO = temp;
       break;
     }
@@ -692,8 +652,7 @@ bool CPU::exec_inst() {
       // Rotate one bit right
       if (addrMode == 4) { // ADDR_ACC = 4
         add = F_CARRY << 7;
-        F_CARRY = REG_ACC & 1;
-
+        F_CARRY = IS_SET(REG_ACC, 1);// & 1;
         temp = (REG_ACC >> 1) + add;
         REG_ACC = temp;
       } else {
@@ -704,22 +663,14 @@ bool CPU::exec_inst() {
         temp = (temp >> 1) + add;
         write(addr, static_cast<uint16_t>(temp));
       }
-      F_SIGN = (temp >> 7) & 1;
+      F_SIGN = IS_SET(temp, 7); //(temp >> 7) & 1;
       F_ZERO = temp;
       break;
     }
     case 41:{ // * RTI *
       // Return from interrupt. Pull status and PC from stack.
       temp = pull();
-      F_CARRY     = (temp   )&1;
-      F_ZERO      = ((temp>>1)&1)==0?1:0;
-      F_INTERRUPT = (temp>>2)&1;
-      F_DECIMAL   = (temp>>3)&1;
-      F_BRK       = (temp>>4)&1;
-      F_NOTUSED   = (temp>>5)&1;
-      F_OVERFLOW  = (temp>>6)&1;
-      F_SIGN      = (temp>>7)&1;
-
+      status_reg(temp);
       REG_PC = pull() + (pull() << 8);
       if (REG_PC == 0xFFFF) {
         return false;
@@ -738,7 +689,7 @@ bool CPU::exec_inst() {
     }
     case 43: {  // * SBC *
       temp = REG_ACC - load(addr) - (1 - F_CARRY);
-      F_SIGN = (temp >> 7) & 1;
+      F_SIGN = IS_SET(temp, 7); //(temp >> 7) & 1;
       REG_ACC = F_ZERO = temp & 0xFF;
       F_OVERFLOW = ((((REG_ACC^temp)&0x80)!=0 && ((REG_ACC^load(addr))&0x80)!=0)?1:0);
       F_CARRY = (temp >= 0);
@@ -778,25 +729,25 @@ bool CPU::exec_inst() {
     case 50: {  // * TAX *
       // Transfer accumulator to index X:
       F_ZERO = REG_X = REG_ACC;
-      F_SIGN = (REG_ACC >> 7) & 1;
+      F_SIGN = IS_SET(REG_ACC, 7); //(REG_ACC >> 7) & 1;
       break;
     }
     case 51: {  // * TAY *
       // Transfer accumulator to index Y:
       F_ZERO = REG_Y = REG_ACC;
-      F_SIGN = (REG_ACC >> 7) & 1;
+      F_SIGN = IS_SET(REG_ACC, 7); //(REG_ACC >> 7) & 1;
       break;
     }
     case 52: {  // * TSX *
       // Transfer stack pointer to index X:
       F_ZERO = REG_X = (REG_SP - 0x0100);
-      F_SIGN = (REG_SP >> 7) & 1;
+      F_SIGN = IS_SET(REG_SP, 7); //(REG_SP >> 7) & 1;
       break;
     }
     case 53: {  // * TXA *
       // Transfer index X to accumulator:
       F_ZERO = REG_ACC = REG_X;
-      F_SIGN = (REG_X >> 7) & 1;
+      F_SIGN = IS_SET(REG_X, 7); //(REG_X >> 7) & 1;
       break;
     }
     case 54: {  // * TXS *
@@ -808,7 +759,7 @@ bool CPU::exec_inst() {
     case 55: {  // * TYA *
       // Transfer index Y to accumulator:
       F_ZERO = REG_ACC = REG_Y;
-      F_SIGN = (REG_Y >> 7) & 1;
+      F_SIGN = IS_SET(REG_Y, 7); // >> 7) & 1;
       break;
     }
     default: {  // * ??? *
@@ -830,22 +781,22 @@ bool CPU::exec_inst() {
 
 // Emulates cpu instructions until screen is drawn.
 bool CPU::emulate() {
-	// NES Memory
-	// (when memory mappers switch ROM banks
-	// this will be written to, no need to
-	// update reference):
-	mem = &nes->cpuMem->mem;
+  // NES Memory
+  // (when memory mappers switch ROM banks
+  // this will be written to, no need to
+  // update reference):
+  mem = &nes->cpuMem->mem;
 
-	// References to other parts of NES:
-	shared_ptr<MapperDefault> mmap = nes->memMapper;
-	shared_ptr<PPU> 		 ppu  = nes->ppu;
-	shared_ptr<PAPU> 		 papu = nes->papu;
+  // References to other parts of NES:
+  shared_ptr<MapperDefault> mmap = nes->memMapper;
+  shared_ptr<PPU>      ppu  = nes->ppu;
+  shared_ptr<PAPU>     papu = nes->papu;
 
-	if (this->nes->_is_paused) {
-		return false;
-	}
+  if (this->nes->_is_paused) {
+    return false;
+  }
 
-	// Check interrupts:
+  // Check interrupts:
   handle_irq();
 
   const uint16_t z = mmap->load(REG_PC + 1);
@@ -886,113 +837,119 @@ bool CPU::emulate() {
     papu->clockFrameCounter(cycleCount);
   }
 
-	return did_render;
+  return did_render;
 }
 
 int CPU::load(int addr) {
-	return addr < 0x2000 ? (*mem)[addr & 0x7FF] : mmap->load(addr);
+  return addr < 0x2000 ? (*mem)[addr & 0x7FF] : mmap->load(addr);
 }
 
 int CPU::load16bit(int addr) {
-	return
+  return
       addr < 0x1FFF ?
-		      (*mem)[addr & 0x7FF] | ((*mem)[(addr + 1) & 0x7FF] << 8) :
-		      mmap->load(addr)     | (mmap->load(addr + 1) << 8);
+          (*mem)[addr & 0x7FF] | ((*mem)[(addr + 1) & 0x7FF] << 8) :
+          mmap->load(addr)     | (mmap->load(addr + 1) << 8);
 }
 
 void CPU::write(int addr, uint16_t val) {
-	if (addr < 0x2000) {
-		(*mem)[addr&0x7FF] = val;
-	} else {
-		mmap->write(addr, val);
-	}
+  if (addr < 0x2000) {
+    (*mem)[addr & 0x7FF] = val;
+  } else {
+    mmap->write(addr, val);
+  }
 }
 
 void CPU::requestIrq(int type) {
-	if (irqRequested) {
-		if (type == IRQ_NORMAL) {
-			return;
-		}
-	}
-	irqRequested = true;
-	irqType = type;
+  if (irqRequested) {
+    if (type == IRQ_NORMAL) {
+      return;
+    }
+  }
+  irqRequested = true;
+  irqType = type;
 }
 
 void CPU::push(int value) {
-	mmap->write(REG_SP, static_cast<uint16_t>(value));
-	--REG_SP;
-	REG_SP = 0x0100 | (REG_SP&0xFF);
+  mmap->write(REG_SP, static_cast<uint16_t>(value));
+  --REG_SP;
+  REG_SP = 0x0100 | (REG_SP & 0xFF);
 }
 
 void CPU::stackWrap() {
-	REG_SP = 0x0100 | (REG_SP&0xFF);
+  REG_SP = 0x0100 | (REG_SP & 0xFF);
 }
 
 uint16_t CPU::pull() {
-	++REG_SP;
-	REG_SP = 0x0100 | (REG_SP&0xFF);
-	return mmap->load(REG_SP);
+  ++REG_SP;
+  REG_SP = 0x0100 | (REG_SP & 0xFF);
+  return mmap->load(REG_SP);
 }
 
 bool CPU::pageCrossed(int addr1, int addr2) {
-	return ((addr1&0xFF00)!=(addr2&0xFF00));
+  return ((addr1&0xFF00)!=(addr2&0xFF00));
 }
 
 void CPU::haltCycles(int cycles) {
-	cyclesToHalt += cycles;
+  cyclesToHalt += cycles;
 }
 
 void CPU::doNonMaskableInterrupt(int status) {
+  int temp = mmap->load(0x2000); // Read PPU status.
+  if ((temp & 128) != 0) { // Check whether VBlank Interrupts are enabled
 
-	int temp = mmap->load(0x2000); // Read PPU status.
-	if((temp&128)!=0) { // Check whether VBlank Interrupts are enabled
-
-		++REG_PC_NEW;
-		push((REG_PC_NEW>>8)&0xFF);
-		push(REG_PC_NEW&0xFF);
-		//F_INTERRUPT_NEW = 1;
-		push(status);
-
-		REG_PC_NEW = mmap->load(0xFFFA) | (mmap->load(0xFFFB) << 8);
-		--REG_PC_NEW;
-	}
+    ++REG_PC_NEW;
+    push((REG_PC_NEW >> 8) & 0xFF);
+    push(REG_PC_NEW & 0xFF);
+    //F_INTERRUPT_NEW = 1;
+    push(status);
+    REG_PC_NEW = mmap->load(0xFFFA) | (mmap->load(0xFFFB) << 8);
+    --REG_PC_NEW;
+  }
 }
 
 void CPU::doResetInterrupt() {
-	REG_PC_NEW = mmap->load(0xFFFC) | (mmap->load(0xFFFD) << 8);
-	--REG_PC_NEW;
+  REG_PC_NEW = mmap->load(0xFFFC) | (mmap->load(0xFFFD) << 8);
+  --REG_PC_NEW;
 }
 
 void CPU::doIrq(int status) {
-	++REG_PC_NEW;
-	push((REG_PC_NEW>>8)&0xFF);
-	push(REG_PC_NEW&0xFF);
-	push(status);
-	F_INTERRUPT_NEW = 1;
-	F_BRK_NEW = 0;
-	REG_PC_NEW = mmap->load(0xFFFE) | (mmap->load(0xFFFF) << 8);
-	--REG_PC_NEW;
+  ++REG_PC_NEW;
+  push((REG_PC_NEW >> 8) & 0xFF);
+  push(REG_PC_NEW & 0xFF);
+  push(status);
+  F_INTERRUPT_NEW = 1;
+  F_BRK_NEW = 0;
+  REG_PC_NEW = mmap->load(0xFFFE) | (mmap->load(0xFFFF) << 8);
+  --REG_PC_NEW;
 }
 
 int CPU::getStatus() {
-	return (F_CARRY_NEW)|(F_ZERO_NEW<<1)|(F_INTERRUPT_NEW<<2)|(F_DECIMAL_NEW<<3)|(F_BRK_NEW<<4)|(F_NOTUSED_NEW<<5)|(F_OVERFLOW_NEW<<6)|(F_SIGN_NEW<<7);
+  return
+      ((F_CARRY_NEW & 0x01)   | 
+       (F_ZERO_NEW      << 1) | 
+       (F_INTERRUPT_NEW << 2) |
+       (F_DECIMAL_NEW   << 3) |
+       (F_BRK_NEW       << 4) |
+       (F_NOTUSED_NEW   << 5) |
+       (F_OVERFLOW_NEW  << 6) |
+       (F_SIGN_NEW      << 7));
 }
 
 void CPU::setStatus(int st) {
-	F_CARRY_NEW     = (st   )&1;
-	F_ZERO_NEW      = (st>>1)&1;
-	F_INTERRUPT_NEW = (st>>2)&1;
-	F_DECIMAL_NEW   = (st>>3)&1;
-	F_BRK_NEW       = (st>>4)&1;
-	F_NOTUSED_NEW   = (st>>5)&1;
-	F_OVERFLOW_NEW  = (st>>6)&1;
-	F_SIGN_NEW      = (st>>7)&1;
+  F_CARRY_NEW     = (st   )&1;
+  F_ZERO_NEW      = (st>>1)&1;
+  F_INTERRUPT_NEW = (st>>2)&1;
+  F_DECIMAL_NEW   = (st>>3)&1;
+  F_BRK_NEW       = (st>>4)&1;
+  F_NOTUSED_NEW   = (st>>5)&1;
+  F_OVERFLOW_NEW  = (st>>6)&1;
+  F_SIGN_NEW      = (st>>7)&1;
 }
 
 void CPU::setCrashed(bool value) {
-	this->crash = value;
+  this->crash = value;
 }
 
 void CPU::setMapper(shared_ptr<MapperDefault> mapper) {
-	mmap = mapper;
+  mmap = mapper;
 }
