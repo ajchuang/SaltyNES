@@ -69,6 +69,7 @@ class Mapper007;
 class Mapper009;
 class Mapper011;
 class Mapper018;
+class Mapper198;
 class MapperDefault;
 class Memory;
 class Misc;
@@ -892,20 +893,32 @@ public:
 
 class Mapper198 : public MapperDefault {
 public:
+	static const int CMD_SEL_2_1K_VROM_0000 = 0;
+	static const int CMD_SEL_2_1K_VROM_0800 = 1;
+	static const int CMD_SEL_1K_VROM_1000 = 2;
+	static const int CMD_SEL_1K_VROM_1400 = 3;
+	static const int CMD_SEL_1K_VROM_1800 = 4;
+	static const int CMD_SEL_1K_VROM_1C00 = 5;
+	static const int CMD_SEL_ROM_PAGE1 = 6;
+	static const int CMD_SEL_ROM_PAGE2 = 7;
+	int command;
+	int prgAddressSelect;
+	int chrAddressSelect;
+	int pageNumber;
+	int irqCounter;
+	int irqLatchValue;
+	int irqEnable;
+	bool prgAddressChanged;
+
 	Mapper198();
 	virtual shared_ptr<MapperDefault> Init(shared_ptr<NES> nes);
-	virtual uint16_t load(int address);
-	virtual void write(int address, short value);
-	virtual void loadROM(ROM* rom);
-	virtual int syncH(int scanline);
+	void mapperInternalStateLoad(ByteBuffer* buf);
+	void mapperInternalStateSave(ByteBuffer* buf);
+	virtual void write(int address, uint16_t value);
+	virtual void executeCommand(int cmd, int arg);
+	virtual void loadROM(shared_ptr<ROM> rom);
+	virtual void clockIrqCounter();
 	virtual void reset();
-
-protected:
-  std::array<uint8_t, KB(4)> wram;  /* 0x5000- 0x5FFF */
-  std::array<uint8_t, KB(512)> prg_ram0; /* Bank: $00-$3F (8KB bank) */
-  std::array<uint8_t, KB(128)> prg_ram1; /* Bank: $40-$4F (8KB bank) */
-
-  /* Bank 4E/4F are MMC3 ? */
 };
 
 class Misc {

@@ -354,21 +354,21 @@ void ROM::load_from_data(const std::string& file_name, vector<uint8_t>* data, ar
   }
 
   // Read header:
-  romCount = header[4];
-  vromCount = header[5] * 2; // Get the number of 4kB banks, not 8kB
+  romCount = header[4];      // size of PRG ROM in 16K pages.
+  vromCount = header[5] * 2; // size of CHR ROM in 8K pages(Get the number of 4kB banks, not 8kB)
   mirroring = ((header[6] & 1) != 0 ? 1 : 0);
   batteryRam = (header[6] & 2) != 0;
   trainer = (header[6] & 4) != 0;
   fourScreen = (header[6] & 8) != 0;
   mapperType = (header[6] >> 4) | (header[7] & 0xF0);
 
-  printf("prog_rom_pages: %lu\n", static_cast<long>(romCount));
-  printf("char_rom_pages: %lu\n", static_cast<long>(vromCount));
-  printf("mirroring: %d\n", mirroring);
-  printf("is_sram_on: %d\n", batteryRam);
-  printf("is_trainer_on: %d\n", trainer);
-  printf("mapper: %lu\n", static_cast<long>(mapperType));
-  printf("sha256: %s\n", _sha256.c_str());
+  mlog("prog_rom_pages: %lu KB", (size_t)romCount * 16);
+  mlog("char_rom_pages: %lu KB", (size_t)(vromCount) * 8);
+  mlog("mirroring: %d", mirroring);
+  mlog("is_sram_on: %d", batteryRam);
+  mlog("is_trainer_on: %d", trainer);
+  mlog("mapper: %lu", static_cast<long>(mapperType));
+  mlog("sha256: %s", _sha256.c_str());
 
   // Battery RAM?
   saveRam = save_ram;
@@ -523,7 +523,7 @@ bool ROM::mapperSupported() {
 }
 
 shared_ptr<MapperDefault> ROM::createMapper() {
-  mlog("using mapper: %d", mapperType);
+  mlog("using mapper: %zu", mapperType);
   merr(
       mapperSupported(),
       "Unsupported mapper: %zu for the rom: %s",
@@ -579,7 +579,7 @@ void ROM::loadBatteryRam() {
   }
 
   if (failedSaveFile) {
-    fprintf(stderr, "failed to save to battery ram\n");
+    mlog("failed to save to battery ram");
   }
 }
 
