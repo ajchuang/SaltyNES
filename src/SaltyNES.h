@@ -890,6 +890,24 @@ public:
 	virtual void reset();
 };
 
+class Mapper198 : public MapperDefault {
+public:
+	Mapper198();
+	virtual shared_ptr<MapperDefault> Init(shared_ptr<NES> nes);
+	virtual uint16_t load(int address);
+	virtual void write(int address, short value);
+	virtual void loadROM(ROM* rom);
+	virtual int syncH(int scanline);
+	virtual void reset();
+
+protected:
+  std::array<uint8_t, KB(4)> wram;  /* 0x5000- 0x5FFF */
+  std::array<uint8_t, KB(512)> prg_ram0; /* Bank: $00-$3F (8KB bank) */
+  std::array<uint8_t, KB(128)> prg_ram1; /* Bank: $40-$4F (8KB bank) */
+
+  /* Bank 4E/4F are MMC3 ? */
+};
+
 class Misc {
 public:
 	static vector<float>* _rnd;

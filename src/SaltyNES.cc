@@ -6,7 +6,6 @@ Licensed under GPLV3 or later
 Hosted at: https://github.com/workhorsy/SaltyNES
 */
 
-
 #include "SaltyNES.h"
 
 SaltyNES::SaltyNES() {

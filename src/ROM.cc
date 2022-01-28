@@ -216,7 +216,7 @@ const array<MapperStatus, 255> ROM::_mapperStatus = {
   MapperStatus(195, false, ""),
   MapperStatus(196, false, ""),
   MapperStatus(197, false, ""),
-  MapperStatus(198, false, ""),
+  MapperStatus(198, true,  "iNES Mapper #198"),
   MapperStatus(199, false, ""),
   MapperStatus(200, false, ""),
   MapperStatus(201, false, ""),
@@ -498,14 +498,12 @@ size_t ROM::getMapperType() {
   return mapperType;
 }
 
-string ROM::getMapperName() {
+std::string ROM::getMapperName() {
   if (mapperType < getmapperName().length()) {
     return ROM::_mapperStatus[mapperType].name;
   }
 
-  stringstream ss;
-  ss << "Unknown Mapper, " << mapperType;
-  return ss.str();
+  return std::string();
 }
 
 bool ROM::hasBatteryRam() {
@@ -525,22 +523,24 @@ bool ROM::mapperSupported() {
 }
 
 shared_ptr<MapperDefault> ROM::createMapper() {
-  if (!mapperSupported()) {
-    fprintf(stderr, "Unsupported mapper: %zu for the rom: %s. Exiting ...\n", mapperType, fileName.c_str());
-    exit(1);
-  }
+  mlog("using mapper: %d", mapperType);
+  merr(
+      mapperSupported(),
+      "Unsupported mapper: %zu for the rom: %s",
+      mapperType, fileName.c_str());
 
   switch (mapperType) {
-    case 0:  return make_shared<MapperDefault>()->Init(this->nes);
-    case 1:  return make_shared<Mapper001>()->Init(this->nes);
-    case 2:  return make_shared<Mapper002>()->Init(this->nes);
-    case 3:  return make_shared<Mapper003>()->Init(this->nes);
-    case 4:  return make_shared<Mapper004>()->Init(this->nes);
-    case 7:  return make_shared<Mapper007>()->Init(this->nes);
-    case 9:  return make_shared<Mapper009>()->Init(this->nes);
-    case 11: return make_shared<Mapper011>()->Init(this->nes);
-    case 18: return make_shared<Mapper018>()->Init(this->nes);
-    default: return nullptr;
+    case 0:   return make_shared<MapperDefault>()->Init(this->nes);
+    case 1:   return make_shared<Mapper001>()->Init(this->nes);
+    case 2:   return make_shared<Mapper002>()->Init(this->nes);
+    case 3:   return make_shared<Mapper003>()->Init(this->nes);
+    case 4:   return make_shared<Mapper004>()->Init(this->nes);
+    case 7:   return make_shared<Mapper007>()->Init(this->nes);
+    case 9:   return make_shared<Mapper009>()->Init(this->nes);
+    case 11:  return make_shared<Mapper011>()->Init(this->nes);
+    case 18:  return make_shared<Mapper018>()->Init(this->nes);
+    case 198: return make_shared<Mapper198>()->Init(this->nes);
+    default:  return nullptr;
   }
 
   return nullptr;
