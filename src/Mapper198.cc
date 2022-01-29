@@ -20,9 +20,7 @@ shared_ptr<MapperDefault> Mapper198::Init(shared_ptr<NES> nes) {
 
 void Mapper198::mapperInternalStateLoad(ByteBuffer* buf) {
 	this->base_mapperInternalStateLoad(buf);
-
-	// Check version:
-	if(buf->readByte() == 1) {
+	if (buf->readByte() == 1) {
 		command = buf->readInt();
 		prgAddressSelect = buf->readInt();
 		chrAddressSelect = buf->readInt();
@@ -52,8 +50,8 @@ void Mapper198::mapperInternalStateSave(ByteBuffer* buf) {
 }
 
 void Mapper198::write(int address, uint16_t value) {
+	// Normal memory write.
 	if (address < 0x8000) {
-		// Normal memory write.
 		this->base_write(address, value);
 		return;
 	}
@@ -67,17 +65,17 @@ void Mapper198::write(int address, uint16_t value) {
 		}
 		prgAddressSelect = tmp;
 		chrAddressSelect = (value >> 7) & 1;
-	} else if(address == 0x8001) {
+	} else if (address == 0x8001) {
 		// Page number for command
 		executeCommand(command, value);
-	} else if(address == 0xA000) {
+	} else if (address == 0xA000) {
 		// Mirroring select
-		if((value & 1) != 0) {
+		if ((value & 1) != 0) {
 			nes->getPpu()->setMirroring(ROM::HORIZONTAL_MIRRORING);
 		} else {
 			nes->getPpu()->setMirroring(ROM::VERTICAL_MIRRORING);
 		}
-	} else if(address == 0xA001) {
+	} else if (address == 0xA001) {
 		// SaveRAM Toggle
 		nes->getRom()->setSaveState((value & 1) != 0);
 	} else if(address == 0xC000) {
@@ -149,8 +147,7 @@ void Mapper198::executeCommand(int cmd, int arg) {
 		} else {
 			load1kVromBank(arg, 0x0C00);
 		}
-
-	} else if(cmd == CMD_SEL_ROM_PAGE1) {
+	} else if (cmd == CMD_SEL_ROM_PAGE1) {
 
 		//Globals.println("cmd=SEL_ROM_PAGE1");
 		if(prgAddressChanged) {
@@ -167,13 +164,12 @@ void Mapper198::executeCommand(int cmd, int arg) {
 
 		// Select first switchable ROM page:
 		//Globals.println("prgAddressSelect = "+prgAddressSelect+" arg="+arg);
-		if(prgAddressSelect == 0) {
+		if (prgAddressSelect == 0) {
 			load8kRomBank(arg, 0x8000);
 		} else {
 			load8kRomBank(arg, 0xC000);
 		}
-
-	} else if(cmd == CMD_SEL_ROM_PAGE2) {
+	} else if (cmd == CMD_SEL_ROM_PAGE2) {
 
 		//Globals.println("cmd=SEL_ROM_PAGE2");
 		//Globals.println("prgAddressSelect = "+prgAddressSelect+" arg="+arg);
@@ -182,13 +178,12 @@ void Mapper198::executeCommand(int cmd, int arg) {
 		load8kRomBank(arg, 0xA000);
 
 		// hardwire appropriate bank:
-		if(prgAddressChanged) {
+		if (prgAddressChanged) {
 			//Globals.println("PRG Address has changed.");
 			// Load the two hardwired banks:
-			if(prgAddressSelect == 0) {
+			if (prgAddressSelect == 0) {
 				load8kRomBank(((nes->getRom()->getRomBankCount() - 1) * 2), 0xC000);
 			} else {
-
 				load8kRomBank(((nes->getRom()->getRomBankCount() - 1) * 2), 0x8000);
 			}
 			prgAddressChanged = false;
@@ -197,10 +192,7 @@ void Mapper198::executeCommand(int cmd, int arg) {
 }
 
 void Mapper198::loadROM(shared_ptr<ROM> rom) {
-	//System.out.println("Loading ROM.");
-
-	if(!rom->isValid()) {
-		//System.out.println("MMC3: Invalid ROM! Unable to load.");
+	if (!rom->isValid()) {
 		return;
 	}
 
@@ -219,20 +211,17 @@ void Mapper198::loadROM(shared_ptr<ROM> rom) {
 	loadBatteryRam();
 
 	// Do Reset-Interrupt:
-	//nes.getCpu().doResetInterrupt();
 	nes->getCpu()->requestIrq(CPU::IRQ_RESET);
 }
 
 void Mapper198::clockIrqCounter() {
-	if(irqEnable == 1) {
+	if (irqEnable == 1) {
 		--irqCounter;
-		if(irqCounter < 0) {
+		if (irqCounter < 0) {
 
 			// Trigger IRQ:
-			//nes.getCpu().doIrq();
 			nes->getCpu()->requestIrq(CPU::IRQ_NORMAL);
 			irqCounter = irqLatchValue;
-
 		}
 	}
 }
