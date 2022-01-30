@@ -167,8 +167,6 @@ shared_ptr<PPU> PPU::Init(shared_ptr<NES> nes) {
   col = 0;
   baseTile = 0;
   tscanoffset = 0;
-  srcy1 = 0;
-  srcy2 = 0;
   bufferSize = 0;
   available = 0;
   cycles = 0;
@@ -1062,65 +1060,60 @@ void PPU::renderBgScanline(array<int, RES_PIXEL>* buffer, int scan) {
 }
 
 void PPU::renderSpritesPartially(int startscan, int scancount, bool bgPri) {
-  if (f_spVisibility == 1) {
-    for (size_t i = 0; i < 64; ++i) {
-      if (bgPriority[i] == bgPri &&
-          sprX[i] >= 0 && sprX[i] < 256 &&
-          sprY[i] + 8 >= startscan && sprY[i] < startscan + scancount) {
-        // Show sprite.
-        if(f_spriteSize == 0) {
-          // 8x8 sprites
+  if (f_spVisibility != 1)
+    return;
 
-          srcy1 = 0;
-          srcy2 = 8;
-
-          if(sprY[i] < startscan) {
-            srcy1 = startscan - sprY[i] - 1;
-          }
-
-          if(sprY[i] + 8 > startscan + scancount) {
-            srcy2 = startscan + scancount - sprY[i] + 1;
-          }
-
-          if(f_spPatternTable == 0) {
-            ptTile[sprTile[i]].render(0, srcy1, 8, srcy2, sprX[i], sprY[i] + 1, &_screen_buffer, sprCol[i], &sprPalette, horiFlip[i], vertFlip[i], i, &pixrendered);
-          } else {
-            ptTile[sprTile[i] + 256].render(0, srcy1, 8, srcy2, sprX[i], sprY[i] + 1, &_screen_buffer, sprCol[i], &sprPalette, horiFlip[i], vertFlip[i], i, &pixrendered);
-          }
-        } else {
-          // 8x16 sprites
-          int top = sprTile[i];
-          if((top & 1) != 0) {
-            top = sprTile[i] - 1 + 256;
-          }
-
-          srcy1 = 0;
-          srcy2 = 8;
-
-          if(sprY[i] < startscan) {
-            srcy1 = startscan - sprY[i] - 1;
-          }
-
-          if(sprY[i] + 8 > startscan + scancount) {
-            srcy2 = startscan + scancount - sprY[i];
-          }
-
-          ptTile[top + (vertFlip[i] ? 1 : 0)].render(0, srcy1, 8, srcy2, sprX[i], sprY[i] + 1, &_screen_buffer, sprCol[i], &sprPalette, horiFlip[i], vertFlip[i], i, &pixrendered);
-
-          srcy1 = 0;
-          srcy2 = 8;
-
-          if(sprY[i] + 8 < startscan) {
-            srcy1 = startscan - (sprY[i] + 8 + 1);
-          }
-
-          if(sprY[i] + 16 > startscan + scancount) {
-            srcy2 = startscan + scancount - (sprY[i] + 8);
-          }
-
-          ptTile[top + (vertFlip[i] ? 0 : 1)].render(0, srcy1, 8, srcy2, sprX[i], sprY[i] + 1 + 8, &_screen_buffer, sprCol[i], &sprPalette, horiFlip[i], vertFlip[i], i, &pixrendered);
-
+  const int endscan = startscan + scancount;
+  for (size_t i = 0; i < 64; ++i) {
+    const int sprXi = sprX[i];
+    const int sprYi = sprY[i];
+    if (bgPriority[i] == bgPri &&
+        sprXi >= 0 && sprXi < RES_WIDTH &&
+        sprYi + 8 >= startscan && sprYi < endscan) {
+      // render sprites
+      // 8x8 sprites
+      if (f_spriteSize == 0) {
+        /* calibrate the starting & ending Y inside the 8x8 sprite */
+        const int srcy1 = std::max(0, startscan - sprY[i] - 1);
+        const int srcy2 = std::min(8, startscan + scancount - sprY[i] + 1);
+        const auto tile_index = sprTile[i] + 256 * f_spPatternTable;
+        ptTile[tile_index].render(
+            0, srcy1, 8, srcy2,
+            sprX[i], sprY[i] + 1,
+            &_screen_buffer, sprCol[i], &sprPalette, horiFlip[i], vertFlip[i], i, &pixrendered);
+      } else {
+        // 8x16 sprites (actually 2 8x8 sprites at a time)
+        int top = sprTile[i];
+        if((top & 1) != 0) {
+          top = sprTile[i] - 1 + 256;
         }
+
+        int srcy1 = 0;  /* starting y in the sprite */
+        int srcy2 = 8;  /* ending y in the sprite */
+
+        /* if starting scanline is lower then Y. (not the whole sprite will be printed) */
+        if (sprY[i] < startscan) {
+          srcy1 = startscan - sprY[i] - 1;
+        }
+
+        if (sprY[i] + 8 > startscan + scancount) {
+          srcy2 = startscan + scancount - sprY[i];
+        }
+
+        ptTile[top + (vertFlip[i] != 0)].render(0, srcy1, 8, srcy2, sprX[i], sprY[i] + 1, &_screen_buffer, sprCol[i], &sprPalette, horiFlip[i], vertFlip[i], i, &pixrendered);
+
+        srcy1 = 0;
+        srcy2 = 8;
+
+        if(sprY[i] + 8 < startscan) {
+          srcy1 = startscan - (sprY[i] + 8 + 1);
+        }
+
+        if(sprY[i] + 16 > startscan + scancount) {
+          srcy2 = startscan + scancount - (sprY[i] + 8);
+        }
+
+        ptTile[top + (vertFlip[i] ? 0 : 1)].render(0, srcy1, 8, srcy2, sprX[i], sprY[i] + 1 + 8, &_screen_buffer, sprCol[i], &sprPalette, horiFlip[i], vertFlip[i], i, &pixrendered);
       }
     }
   }
@@ -1493,36 +1486,26 @@ void PPU::attribTableWrite(int index, int address, uint16_t value) {
 // Updates the internally buffered sprite
 // data with this new byte of info.
 void PPU::spriteRamWriteUpdate(int address, uint16_t value) {
-  int tIndex = address / 4;
-
-  if(tIndex == 0) {
+  const int tIndex = (address >> 2);
+  if (tIndex == 0) {
     //updateSpr0Hit();
     checkSprite0(scanline + 1 - vblankAdd - 21);
   }
 
-  if(address % 4 == 0) {
-
-    // Y coordinate
-    sprY[tIndex] = value;
-
-  } else if(address % 4 == 1) {
-
-    // Tile index
-    sprTile[tIndex] = value;
-
-  } else if(address % 4 == 2) {
-
-    // Attributes
-    vertFlip[tIndex] = ((value & 0x80) != 0);
-    horiFlip[tIndex] = ((value & 0x40) != 0);
-    bgPriority[tIndex] = ((value & 0x20) != 0);
-    sprCol[tIndex] = (value & 3) << 2;
-
-  } else if(address % 4 == 3) {
-
-    // X coordinate
-    sprX[tIndex] = value;
-
+  /* get last 2 bits */
+  const int remainder = (address & 0x03);
+  switch (remainder) {
+    case 0: sprY[tIndex] = value; break;
+    case 1: sprTile[tIndex] = value; break;
+    case 2: {
+      vertFlip[tIndex] = ((value & 0x80) != 0);
+      horiFlip[tIndex] = ((value & 0x40) != 0);
+      bgPriority[tIndex] = ((value & 0x20) != 0);
+      sprCol[tIndex] = (value & 3) << 2;
+      break;
+    }
+    case 3: sprX[tIndex] = value; break;
+    default: break;
   }
 }
 
@@ -1535,19 +1518,18 @@ void PPU::doNMI() {
 
 int PPU::statusRegsToInt() {
   int ret = 0;
-  ret = (f_nmiOnVblank) |
-      (f_spriteSize << 1) |
-      (f_bgPatternTable << 2) |
-      (f_spPatternTable << 3) |
-      (f_addrInc << 4) |
-      (f_nTblAddress << 5) |
-      (f_color << 6) |
-      (f_spVisibility << 7) |
-      (f_bgVisibility << 8) |
-      (f_spClipping << 9) |
-      (f_bgClipping << 10) |
-      (f_dispType << 11);
-
+  ret = (f_nmiOnVblank)            |
+        (f_spriteSize       <<  1) |
+        (f_bgPatternTable   <<  2) |
+        (f_spPatternTable   <<  3) |
+        (f_addrInc          <<  4) |
+        (f_nTblAddress      <<  5) |
+        (f_color            <<  6) |
+        (f_spVisibility     <<  7) |
+        (f_bgVisibility     <<  8) |
+        (f_spClipping       <<  9) |
+        (f_bgClipping       << 10) |
+        (f_dispType         << 11);
   return ret;
 }
 
@@ -1607,7 +1589,7 @@ void PPU::stateLoad(ByteBuffer* buf) {
     // Mirroring:
     //currentMirroring = -1;
     //setMirroring(buf->readInt());
-    for(size_t i = 0; i < vramMirrorTable.size(); ++i) {
+    for (size_t i = 0; i < vramMirrorTable.size(); ++i) {
       vramMirrorTable[i] = buf->readInt();
     }
 
@@ -1630,10 +1612,11 @@ void PPU::stateLoad(ByteBuffer* buf) {
 
 
     // Stuff used during rendering:
-    for(size_t i = 0; i < bgbuffer.size(); ++i) {
+    for (size_t i = 0; i < bgbuffer.size(); ++i) {
       bgbuffer[i] = buf->readByte();
     }
-    for(size_t i = 0; i < pixrendered.size(); ++i) {
+
+    for (size_t i = 0; i < pixrendered.size(); ++i) {
       pixrendered[i] = buf->readByte();
     }
 

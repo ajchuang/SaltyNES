@@ -48,6 +48,7 @@ using namespace std;
 const uint32_t RES_WIDTH  = 256;
 const uint32_t RES_HEIGHT = 240;
 const uint32_t RES_PIXEL  = RES_WIDTH * RES_HEIGHT;
+const uint32_t N_SPRITES  = 64;
 
 // Forward declarations
 class IPapuChannel;
@@ -1177,14 +1178,37 @@ private:
 	array<int, 64> pix;
 	int fbIndex;
 	int tIndex;
-	int x, y;
-	int w, h;
+	//int x, y;
+	//int w, h;
 	int incX, incY;
 	int palIndex;
 	int tpri;
 	int c;
 	bool initialized;
 	array<bool, 8> opaque;
+};
+
+class frame_buffer {
+public:
+  static frame_buffer* get_frame_buffer();
+
+  void rendered();
+  int  largest_updated_line() const { return m_largest_updated_line; }
+
+  int get_pixel(const int linear_order);
+  int get_pixel(const int x, const int y);
+
+  void set_pixel(const int linear_order, const int value);
+  void set_pixel(const int x, const int y, const int value);
+
+  const void* data_ptr();
+  const void* data_ptr(const int x, const int y);
+  
+private:
+  frame_buffer();
+
+  std::array<int, RES_PIXEL> m_buf;
+  int m_largest_updated_line;
 };
 
 class PPU : public enable_shared_from_this<PPU> {
@@ -1253,19 +1277,20 @@ public:
 	int lastRenderedScanline;
 	int mapperIrqCounter;
 	// Sprite data:
-	array<int, 64> sprX;				// X coordinate
-	array<int, 64> sprY;				// Y coordinate
-	array<int, 64> sprTile;			// Tile Index (into pattern table)
-	array<int, 64> sprCol;			// Upper two bits of color
-	array<bool, 64> vertFlip;		// Vertical Flip
-	array<bool, 64> horiFlip;		// Horizontal Flip
-	array<bool, 64> bgPriority;	// Background priority
+	array<int,  N_SPRITES> sprX;				// X coordinate
+	array<int,  N_SPRITES> sprY;				// Y coordinate
+	array<int,  N_SPRITES> sprTile;			// Tile Index (into pattern table)
+	array<int,  N_SPRITES> sprCol;			// Upper two bits of color
+	array<bool, N_SPRITES> vertFlip;		// Vertical Flip
+	array<bool, N_SPRITES> horiFlip;		// Horizontal Flip
+	array<bool, N_SPRITES> bgPriority;	// Background priority
 	int spr0HitX;	// Sprite #0 hit X coordinate
 	int spr0HitY;	// Sprite #0 hit Y coordinate
 	bool hitSpr0;
 
 	// Tiles:
 	array<Tile, 512> ptTile;
+
 	// Name table data:
 	array<int, 4> ntable1;
 	array<NameTable, 4> nameTable;
@@ -1305,10 +1330,12 @@ public:
 	int col;
 	int baseTile;
 	int tscanoffset;
-	int srcy1, srcy2;
 	int bufferSize, available;
 	int cycles;
+
 	array<int, RES_PIXEL> _screen_buffer;
+  frame_buffer* mp_frame_buffer;
+
 	array<int, RES_PIXEL>* get_screen_buffer();
 	vector<int>* get_pattern_buffer();
 	vector<int>* get_name_buffer();

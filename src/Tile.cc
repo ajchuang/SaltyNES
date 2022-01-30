@@ -6,19 +6,13 @@ Licensed under GPLV3 or later
 Hosted at: https://github.com/workhorsy/SaltyNES
 */
 
-
 #include "SaltyNES.h"
-
 
 Tile::Tile() {
 	// Tile data:
 	pix.fill(0);
 	fbIndex = 0;
 	tIndex = 0;
-	x = 0;
-	y = 0;
-	w = 0;
-	h = 0;
 	incX = 0;
 	incY = 0;
 	palIndex = 0;
@@ -29,7 +23,7 @@ Tile::Tile() {
 }
 
 void Tile::setBuffer(vector<uint16_t>* scanline) {
-	for(y = 0; y < 8; ++y) {
+	for (int y = 0; y < 8; ++y) {
 		setScanline(y, (*scanline)[y], (*scanline)[y + 8]);
 	}
 }
@@ -37,7 +31,7 @@ void Tile::setBuffer(vector<uint16_t>* scanline) {
 void Tile::setScanline(int sline, uint16_t b1, uint16_t b2) {
 	initialized = true;
 	tIndex = sline << 3;
-	for(x = 0; x < 8; ++x) {
+	for (int x = 0; x < 8; ++x) {
 		pix[tIndex + x] = ((b1 >> (7 - x)) & 1) + (((b2 >> (7 - x)) & 1) << 1);
 		if(pix[tIndex + x] == 0) {
 			opaque[sline] = false;
@@ -48,8 +42,8 @@ void Tile::setScanline(int sline, uint16_t b1, uint16_t b2) {
 void Tile::renderSimple(int dx, int dy, vector<int>* fBuffer, int palAdd, int* palette) {
 	tIndex = 0;
 	fbIndex = (dy << 8) + dx;
-	for(y = 8; y != 0; --y) {
-		for(x = 8; x != 0; --x) {
+	for(int y = 8; y != 0; --y) {
+		for(int x = 8; x != 0; --x) {
 			palIndex = pix[tIndex];
 			if(palIndex != 0) {
 				(*fBuffer)[fbIndex] = palette[palIndex + palAdd];
@@ -65,8 +59,8 @@ void Tile::renderSimple(int dx, int dy, vector<int>* fBuffer, int palAdd, int* p
 void Tile::renderSmall(int dx, int dy, vector<int>* buffer, int palAdd, int* palette) {
 	tIndex = 0;
 	fbIndex = (dy << 8) + dx;
-	for(y = 0; y < 4; ++y) {
-		for(x = 0; x < 4; ++x) {
+	for (int y = 0; y < 4; ++y) {
+		for (int x = 0; x < 4; ++x) {
 
 			c = (palette[pix[tIndex] + palAdd] >> 2) & 0x003F3F3F;
 			c += (palette[pix[tIndex + 1] + palAdd] >> 2) & 0x003F3F3F;
@@ -83,7 +77,8 @@ void Tile::renderSmall(int dx, int dy, vector<int>* buffer, int palAdd, int* pal
 }
 
 void Tile::render(
-    int srcx1, int srcy1, int srcx2, int srcy2, int dx, int dy,
+    int srcx1, int srcy1, int srcx2, int srcy2, /* starting/ending point in the tile */
+    int dx, int dy, /* starting point in the screen */
     array<int, RES_PIXEL>* fBuffer, int palAdd,
     array<int, 16>* palette,
     bool flipHorizontal, bool flipVertical, int pri,
@@ -92,8 +87,8 @@ void Tile::render(
 		return;
 	}
 
-	w = srcx2 - srcx1;
-	h = srcy2 - srcy1;
+	int w = srcx2 - srcx1;
+	int h = srcy2 - srcy1;
 
 	if (dx < 0) {
 		srcx1 -= dx;
@@ -110,16 +105,18 @@ void Tile::render(
 		srcy2 = RES_HEIGHT - dy;
 	}
 
-	if(!flipHorizontal && !flipVertical) {
-
+  /* no flip */
+	if (!flipHorizontal && !flipVertical) {
 		fbIndex = (dy << 8) + dx;
 		tIndex = 0;
-		for(y = 0; y < 8; ++y) {
-			for(x = 0; x < 8; ++x) {
-				if(x >= srcx1 && x < srcx2 && y >= srcy1 && y < srcy2) {
+		for (int y = 0; y < 8; ++y) {
+			for (int x = 0; x < 8; ++x) {
+				if (srcx1 <= x && x < srcx2 &&
+            srcy1 <= y && y < srcy2) {
 					palIndex = pix[tIndex];
 					tpri = (*priTable)[fbIndex];
-					if(palIndex != 0 && pri <= (tpri & 0xFF)) {
+					if (palIndex != 0 && pri <= (tpri & 0xFF)) {
+            /* fill the color */
 						(*fBuffer)[fbIndex] = (*palette)[palIndex + palAdd];
 						tpri = (tpri & 0xF00) | pri;
 						(*priTable)[fbIndex] = tpri;
@@ -136,8 +133,8 @@ void Tile::render(
 
 		fbIndex = (dy << 8) + dx;
 		tIndex = 7;
-		for(y = 0; y < 8; ++y) {
-			for(x = 0; x < 8; ++x) {
+		for (int y = 0; y < 8; ++y) {
+			for (int x = 0; x < 8; ++x) {
 				if(x >= srcx1 && x < srcx2 && y >= srcy1 && y < srcy2) {
 					palIndex = pix[tIndex];
 					tpri = (*priTable)[fbIndex];
@@ -159,8 +156,8 @@ void Tile::render(
 
 		fbIndex = (dy << 8) + dx;
 		tIndex = 56;
-		for(y = 0; y < 8; ++y) {
-			for(x = 0; x < 8; ++x) {
+		for (int y = 0; y < 8; ++y) {
+			for (int x = 0; x < 8; ++x) {
 				if(x >= srcx1 && x < srcx2 && y >= srcy1 && y < srcy2) {
 					palIndex = pix[tIndex];
 					tpri = (*priTable)[fbIndex];
@@ -182,8 +179,8 @@ void Tile::render(
 
 		fbIndex = (dy << 8) + dx;
 		tIndex = 63;
-		for(y = 0; y < 8; ++y) {
-			for(x = 0; x < 8; ++x) {
+		for(int y = 0; y < 8; ++y) {
+			for(int x = 0; x < 8; ++x) {
 				if(x >= srcx1 && x < srcx2 && y >= srcy1 && y < srcy2) {
 					palIndex = pix[tIndex];
 					tpri = (*priTable)[fbIndex];
